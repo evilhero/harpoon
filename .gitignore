@@ -1,0 +1,7 @@
+harpoon.conf
+*.pid
+*.py[co]
+*.backup
+logs/
+cache/
+junk/

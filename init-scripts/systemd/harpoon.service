@@ -1,0 +1,20 @@
+# Harpoon.service to run as $USER with config in $DATA_DIR
+
+[Unit]
+SourcePath=/etc/init.d/harpoon
+Description=LSB: starts instance of Harpoon
+After=all.target
+
+[Service]
+Type=forking
+Restart=no
+TimeoutSec=5min
+IgnoreSIGPIPE=no
+KillMode=process
+GuessMainPID=no
+RemainAfterExit=yes
+ExecStart=/etc/init.d/harpoon start
+ExecStop=/etc/init.d/harpoon stop
+
+[Install]
+WantedBy=multi-user.target

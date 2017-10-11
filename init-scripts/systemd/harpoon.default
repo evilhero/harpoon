@@ -1,0 +1,13 @@
+## HARPOON_USER=         #$RUN_AS, username to run harpoon under, the default is harpoon
+## HARPOON_HOME=         #$APP_PATH, the location of harpoon.py, the default is /opt/harpoon
+## HARPOON_PIDFILE=      #$PID_FILE, the location of harpoon.pid, the default is /var/run/harpoon/harpoon.pid
+## PYTHON_BIN=         #$DAEMON, the location of the python binary, the default is /usr/bin/python
+## HARPOON_OPTS=         #$EXTRA_DAEMON_OPTS, extra cli option for harpoon, i.e. " --config=/home/harpoon/config.ini"
+## SSD_OPTS=           #$EXTRA_SSD_OPTS, extra start-stop-daemon option like " --group=users"
+##
+## EXAMPLE if want to run as different user
+## add HARPOON_USER=username to /etc/default/harpoon
+## otherwise default user of harpoon is used (the user must already exist)
+
+HARPOON_USER=
+HARPOON_HOME=/opt/harpoon

@@ -1,0 +1,11 @@
+Instructions on setting up harpoon as a systemd serivce that will run on startup/via systemctl commands...
+
+1 - copy the harpoon.service to /lib/systemd/system/harpoon.service
+2 - create a symbolic link to it - ln -s /lib/systemd/system/harpoon.service /etc/systemd/system/harpoon.service
+3 - copy harpoon.default to /etc/default/harpoon
+4 - copy harpoon to /etc/init.d/harpoon and then 'sudo chmod +x /etc/init.d/harpoon'
+5 - edit the /etc/default/harpoon file to your defaults (make sure to set HARPOON_USER & HARPOON_HOME as they're required)
+6 - make systemd aware of new services: sudo sytemctl daemon-reload
+7 -                                     sudo systemctl enable harpoon
+8 -                                     sudo systemctl start harpoon
+9 - to check to see if running/status - sudo sytemctl status harpoon
