@@ -3,23 +3,19 @@ version - 0.5
 
 Description
 ---------
-This is a python-cli based application that can either be run from the cli directly, or as a daemon to automatically send and/or
-monitor torrents to a remote torrent client and monitor for completion and retrieve the completed files back to the local machine 
-where automatic post-processing against specific clients can be initiated.
-
-
+This is a python-cli based application that can either be run from the cli directly, or as a daemon to automatically send and/or monitor torrents to a remote torrent client and monitor for completion and retrieve the completed files back to the local machine where automatic post-processing against specific clients can be initiated.
 
 Requirements
 ----------
-LINUX only
-Python 2.7.9+ (for SNI support)
-lftp
-rutorrent client (running remotely - ie.seedbox)
-sonarr   (optional)
-sickrage (optional)
-radarr   (optional)
-mylar    (optional)
-plex     (optional)
+- LINUX only
+- Python 2.7.9+ (for SNI support)
+- lftp
+- rutorrent client (running remotely - ie.seedbox)
+- sonarr   (optional)
+- sickrage (optional)
+- radarr   (optional)
+- mylar    (optional)
+- plex     (optional)
 
 
 Options via command line
@@ -102,27 +98,16 @@ If there is a 2nd seedbox to monitor (multiple_seedboxes = True), copy the entir
 Same applies to post-processing, copy so that an additional section called [post-processing2] is setup, with PP_HOST2 and PP_SSHPORT2 therein.
 
 
-
 Usage (Daemon mode)
 ----------
-Harpoon can monitor a given directory (ie. watch directory) for actual .torrent files. Once the torrent files are recognized they
-are sent to the remote torrent client for monitoring and automatic retrieval back to the local client upon completion.
-For organizational/operational usage it is best to create a folder for .torrent files to be monitored and then subfolders for each
-label that is required. Post-processing can then be accomplished using these labels as the requirement to call the given 
-post-processing application via direct api calls (ie. tv = sonarr, movies = radarr, comics = movies, etc).
+Harpoon can monitor a given directory (ie. watch directory) for actual .torrent files. Once the torrent files are recognized they are sent to the remote torrent client for monitoring and automatic retrieval back to the local client upon completion.
+
+For organizational/operational usage it is best to create a folder for .torrent files to be monitored and then subfolders for each label that is required. Post-processing can then be accomplished using these labels as the requirement to call the given post-processing application via direct api calls (ie. tv = sonarr, movies = radarr, comics = movies, etc).
 
 For Sonarr/Radarr
 ----------
-In either/both application, go to Settings / Connections and create a custom script. Give the name something obvious 'HARPOON',
-and set the On Grab option to Yes, and the On Download option to No.  Set the Path option to the location of your python executable
-(ie. /usr/bin/python), and then in the arguments set it to the complete path to the harpoonshot.py file which is currently located
-in the root of the harpoon folder with the application name at the end of the argument line (ie. /opt/harpoon/harpoonshot.py radarr 
-OR /opt/harpoon/harpoonshot.py sonarr). Save the script and make sure it's enabled. That's it - now whenever sonarr/radarr snatch a 
-torrent it will still send it directly to the given client, but it will also run the harpoonshot.py script right after which contains
-information that allows harpoon to monitor the file by hash on the torrent client. It will create a file in the given watch directory
-folder, under the specific label, as the hash of the file with the extension of either .radarr.hash or .sonarr.hash once it's been
-successfully added to the watch queue (once post-processing has been successfully completed, these files in the watch directory are
- automatically removed).
+In either/both application, go to Settings / Connections and create a custom script. Give the name something obvious 'HARPOON', and set the On Grab option to Yes, and the On Download option to No.  Set the Path option to the location of your python executable (ie. /usr/bin/python), and then in the arguments set it to the complete path to the harpoonshot.py file which is currently located in the root of the harpoon folder with the application name at the end of the argument line (ie. /opt/harpoon/harpoonshot.py radarr OR /opt/harpoon/harpoonshot.py sonarr). 
 
+Save the script and make sure it's enabled. That's it - now whenever sonarr/radarr snatch a torrent it will still send it directly to the given client, but it will also run the harpoonshot.py script right after which contains information that allows harpoon to monitor the file by hash on the torrent client. It will create a file in the given watch directory folder, under the specific label, as the hash of the file with the extension of either .radarr.hash or .sonarr.hash once it's been successfully added to the watch queue (once post-processing has been successfully completed, these files in the watch directory are automatically removed).
 
 ....more to be added
