@@ -29,10 +29,11 @@ import ConfigParser
 
 import torrent.clients.rtorrent as TorClient
 
+import harpoon
 from harpoon import logger
 
 class RTorrent(object):
-    def __init__(self, hash=None, file=None, add=False, label=None, partial=False):
+    def __init__(self, hash=None, file=None, add=False, label=None, partial=False, conf=None):
 
         if hash is None:
             self.torrent_hash = None
@@ -60,6 +61,12 @@ class RTorrent(object):
             self.partial = True
         else:
             self.partial = False
+
+        if conf is None:
+            logger.warn('Unable to load config file properly for rtorrent usage. Make sure harpoon.conf is located in the /conf directory')
+            return None
+        else:
+            self.conf_location = conf
 
         config = ConfigParser.RawConfigParser()
         config.read(self.conf_location)

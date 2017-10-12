@@ -21,11 +21,13 @@ from harpoon import rtorrent, unrar, logger, sonarr, radarr, plex, sickrage
 
 from apscheduler.scheduler import Scheduler
 
+#global variables
 #this is required here to get the log path below
 DATADIR = os.path.dirname(os.path.realpath(__file__))
+CONF_LOCATION = os.path.join(DATADIR, 'conf', 'harpoon.conf')
 
 config = ConfigParser.SafeConfigParser()
-config.read(os.path.join(DATADIR, 'conf', 'harpoon.conf'))
+config.read(CONF_LOCATION)
 
 logpath = config.get('general', 'logpath')
 logger.initLogger(logpath)
@@ -121,6 +123,16 @@ class QueueR(object):
         self.xxxdir = config.get('label_directories', 'xxxdir')
         self.comicsdir = config.get('label_directories', 'comicsdir')
 
+        #lftp/transfer
+        self.pp_host = config.get('post-processing', 'pp_host')
+        self.pp_sshport = config.get('post-processing', 'pp_sshport')
+        self.pp_user = config.get('post-processing', 'pp_user')
+        self.pp_passwd = config.get('post-processing', 'pp_passwd')
+        self.pp_host2 = config.get('post-processing2', 'pp_host2')
+        self.pp_sshport2 = config.get('post-processing2', 'pp_sshport2')
+        self.pp_user2 = config.get('post-processing2', 'pp_user2')
+        self.pp_passwd2 = config.get('post-processing2', 'pp_passwd2')
+
         #sickrage
         self.sickrage_label = config.has_option('sickrage', 'sickrage_label')
         self.sickrage_conf = {'sickrage_headers': {'Accept': 'application/json'},
@@ -190,7 +202,8 @@ class QueueR(object):
                                       'sickrage_url':     self.sickrage_conf['sickrage_url'],
                                       'sickrage_label':   self.sickrage_label},
 
-                         'torrentfile_dir':           self.torrentfile_dir}
+                         'torrentfile_dir':           self.torrentfile_dir,
+                         'conf_location':             self.conf_location}
 
         if options.daemon:
             self.daemonize()
@@ -292,9 +305,9 @@ class QueueR(object):
 
             if any([item['mode'] == 'file', item['mode'] == 'file-add']):
                 logger.info('sending to rtorrent as file...')
-                rt = rtorrent.RTorrent(file=item['item'], label=item['label'], partial=self.partial)
+                rt = rtorrent.RTorrent(file=item['item'], label=item['label'], partial=self.partial, conf=self.conf_location)
             else:
-                rt = rtorrent.RTorrent(hash=item['item'], label=item['label'])
+                rt = rtorrent.RTorrent(hash=item['item'], label=item['label'], conf=self.conf_location)
             snstat = rt.main()
 
             #import torrent.clients.deluge as delu
@@ -377,6 +390,18 @@ class QueueR(object):
                     os.environ['harpoon_location'] = re.sub("'", "\\'",downlocation)
                     os.environ['harpoon_label'] = labelit
                     os.environ['harpoon_multiplebox'] = multiplebox
+
+                    os.environ['harpoon_defaultdir'] = self.default_dir
+                    os.environ['harpoon_pp_host'] = self.pp_host
+                    os.environ['harpoon_pp_sshport'] = self.pp_sshport
+                    os.environ['harpoon_pp_user'] = self.pp_user
+                    os.environ['harpoon_pp_passwd'] = self.pp_passwd
+
+                    os.environ['harpoon_pp_host2'] = self.pp_host2
+                    os.environ['harpoon_pp_sshport2'] = self.pp_sshport2
+                    os.environ['harpoon_pp_user2'] = self.pp_user2
+                    os.environ['harpoon_pp_passwd2'] = self.pp_passwd2
+
                     logger.info('Downlocation: %s' % re.sub("'", "\\'", downlocation))
                     logger.info('Label: %s' % labelit)
                     logger.info('Multiple Seedbox: %s' % multiplebox)
@@ -882,7 +907,7 @@ class QueueR(object):
                                 fpath = os.path.join(self.conf_info['torrentfile_dir'], subdir, f)
                                 logger.info('label to be set to : ' + str(subdir))
                                 logger.info('Filepath set to : ' + str(fpath))
-                                tinfo = rtorrent.RTorrent(file=fpath, add=True, label=subdir)
+                                tinfo = rtorrent.RTorrent(file=fpath, add=True, label=subdir, conf=self.conf_info['conf_location'])
                                 torrent_info = tinfo.main()
                                 logger.info(torrent_info)
                                 if torrent_info:

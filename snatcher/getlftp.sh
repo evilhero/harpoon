@@ -1,30 +1,19 @@
 #!/bin/bash
-configfile="$conf_location"
-configfile_secured='/tmp/harpoon.conf'
-
-# check if the file contains something we don't want
-if egrep -q -v '^#|^[^ ]*=[^;]*' "$configfile"; then
-  echo "Config file is unclean, cleaning it..." >&2
-  # filter the original to a new file
-  egrep '^#|^[^ ]*=[^;&]*'  "$configfile" > "$configfile_secured"
-  configfile="$configfile_secured"
-fi
-
-# now source it, either the original or the filtered variant
-source "$configfile"
 
 filename="$harpoon_location"
 label="$harpoon_label"
 multiple="$harpoon_multiplebox"
+applylabel="$harpoon_applylabel"
+defaultdir="$harpoon_defaultdir"
 
-if [[ $APPLYLABEL == "true" ]]; then
-    if [[ "$DEFAULTDIR" == */ ]]; then
-        cd $DEFAULTDIR${label}
+if [[ $applylabel == "true" ]]; then
+    if [[ $defaultdir == */ ]]; then
+        cd $defaultdir$label
     else
-        cd $DEFAULTDIR/${label}
+        cd $defaultdir/$label
     fi
 else
-    cd $DEFAULTDIR
+    cd $defaultdir
 fi
 
 if [[ "${filename##*.}" == "mkv" || "${filename##*.}" == "avi" || "${filename##*.}" == "mp4" || "${filename##*.}" == "mpg" || "${filename##*.}" == "mov" || "${filename##*.}" == "cbr" || "${filename##*.}" == "cbz" ]]; then
@@ -33,15 +22,15 @@ else
     LCMD="mirror -P 2 --use-pget-n=6 '$filename'"
 fi
 if [[ $multiple -eq 0 || $multiple -eq 1 ]]; then
-    HOST=$PP_HOST
-    PORT=$PP_SSHPORT
-    USER=$PP_USER
-    PASS=$PP_PASSWD
+    HOST="$harpoon_pp_host"
+    PORT="$harpoon_pp_sshport"
+    USER="$harpoon_pp_user"
+    PASS="$harpoon_pp_passwd"
 else
-    HOST=$PP_HOST2
-    PORT=$PP_SSHPORT2
-    USER=$PP_USER2
-    PASS=$PP_PASSWD2
+    HOST="$harpoon_pp_host2"
+    PORT="$harpoon_pp_sshport2"
+    USER="$harpoon_pp_user2"
+    PASS="$harpoon_pp_passwd2"
 fi
 
 lftp<<END_SCRIPT
