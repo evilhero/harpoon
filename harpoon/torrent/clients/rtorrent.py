@@ -8,7 +8,6 @@ class TorrentClient(object):
         self.conn = None
 
     def getVerifySsl(self, rtorr_verify):
-        print rtorr_verify
         #rtorr_verify = 0
         # Ensure verification has been enabled
         if not rtorr_verify:
@@ -18,9 +17,6 @@ class TorrentClient(object):
         return True
 
     def connect(self, host, username, password, auth, rpc_url, rtorr_ssl, rtorr_verify):
-        print rpc_url
-        print bool(rtorr_ssl)
-        print rtorr_verify
         if self.conn is not None:
             return self.conn
 
@@ -38,8 +34,6 @@ class TorrentClient(object):
         # rpc_url is only used on http/https scgi pass-through
         if parsed.scheme in ['http', 'https']:
             url += rpc_url
-
-        print(url)
 
         if username and password:
             try:

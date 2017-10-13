@@ -6,14 +6,14 @@ multiple="$harpoon_multiplebox"
 applylabel="$harpoon_applylabel"
 defaultdir="$harpoon_defaultdir"
 
-if [[ $applylabel == "true" ]]; then
-    if [[ $defaultdir == */ ]]; then
-        cd $defaultdir$label
+if [[ "${applylabel}" == "true" ]]; then
+    if [[ "${defaultdir}" == */ ]]; then
+        cd ${defaultdir}${label}
     else
-        cd $defaultdir/$label
+        cd ${defaultdir}/${label}
     fi
 else
-    cd $defaultdir
+    cd ${defaultdir}
 fi
 
 if [[ "${filename##*.}" == "mkv" || "${filename##*.}" == "avi" || "${filename##*.}" == "mp4" || "${filename##*.}" == "mpg" || "${filename##*.}" == "mov" || "${filename##*.}" == "cbr" || "${filename##*.}" == "cbz" ]]; then
@@ -34,8 +34,8 @@ else
 fi
 
 lftp<<END_SCRIPT
-open sftp://$HOST:$PORT
-user $USER $PASS
+open sftp://${HOST}:${PORT}
+user ${USER} ${PASS}
 $LCMD
 bye
 END_SCRIPT

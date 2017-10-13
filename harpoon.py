@@ -389,9 +389,10 @@ class QueueR(object):
                     os.environ['conf_location'] = self.conf_location
                     os.environ['harpoon_location'] = re.sub("'", "\\'",downlocation)
                     os.environ['harpoon_label'] = labelit
+                    os.environ['harpoon_applylabel'] = self.applylabel
                     os.environ['harpoon_multiplebox'] = multiplebox
 
-                    os.environ['harpoon_defaultdir'] = self.default_dir
+                    os.environ['harpoon_defaultdir'] = self.defaultdir
                     os.environ['harpoon_pp_host'] = self.pp_host
                     os.environ['harpoon_pp_sshport'] = self.pp_sshport
                     os.environ['harpoon_pp_user'] = self.pp_user
