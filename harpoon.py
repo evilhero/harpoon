@@ -109,85 +109,89 @@ class QueueR(object):
         self.not_loaded = 0
 
         self.conf_location = os.path.join(DATADIR, 'conf', 'harpoon.conf')
-        self.socket_api = config.get('general', 'socket_api')
-        self.applylabel = config.get('general', 'applylabel')
-        self.defaultdir = config.get('general', 'defaultdir')
-        self.torrentfile_dir = config.get('general', 'torrentfile_dir')
-        self.torrentclient = config.get('general', 'torrentclient')
+        self.socket_api = self.configchk('general', 'socket_api', str)
+        self.applylabel = self.configchk('general', 'applylabel', str)
+        self.defaultdir = self.configchk('general', 'defaultdir', str)
+        self.torrentfile_dir = self.configchk('general', 'torrentfile_dir', str)
+        self.torrentclient = self.configchk('general', 'torrentclient', str)
 
         #defaultdir is the default download directory on your rtorrent client. This is used to determine if the download
         #should initiate a mirror vs a get (multiple file vs single vs directories)
-        self.tvdir = config.get('label_directories', 'tvdir')
-        self.moviedir = config.get('label_directories', 'moviedir')
-        self.musicdir = config.get('label_directories', 'musicdir')
-        self.xxxdir = config.get('label_directories', 'xxxdir')
-        self.comicsdir = config.get('label_directories', 'comicsdir')
+        self.tvdir = self.configchk('label_directories', 'tvdir', str)
+        self.moviedir = self.configchk('label_directories', 'moviedir', str)
+        self.musicdir = self.configchk('label_directories', 'musicdir', str)
+        self.xxxdir = self.configchk('label_directories', 'xxxdir', str)
+        self.comicsdir = self.configchk('label_directories', 'comicsdir', str)
 
         #lftp/transfer
-        self.pp_host = config.get('post-processing', 'pp_host')
-        self.pp_sshport = config.get('post-processing', 'pp_sshport')
-        self.pp_user = config.get('post-processing', 'pp_user')
-        self.pp_passwd = config.get('post-processing', 'pp_passwd')
-        self.pp_host2 = config.get('post-processing2', 'pp_host2')
-        self.pp_sshport2 = config.get('post-processing2', 'pp_sshport2')
-        self.pp_user2 = config.get('post-processing2', 'pp_user2')
-        self.pp_passwd2 = config.get('post-processing2', 'pp_passwd2')
+        self.pp_host = self.configchk('post-processing', 'pp_host', str)
+        self.pp_sshport = self.configchk('post-processing', 'pp_sshport', int)
+        if self.pp_sshport == 0:
+            self.pp_sshport = 22
+        self.pp_user = self.configchk('post-processing', 'pp_user', str)
+        self.pp_passwd = self.configchk('post-processing', 'pp_passwd', str)
+        self.pp_host2 = self.configchk('post-processing2', 'pp_host2', str)
+        self.pp_sshport2 = self.configchk('post-processing2', 'pp_sshport2', int)
+        if self.pp_sshport2 == 0:
+            self.pp_sshport2 = 22
+        self.pp_user2 = self.configchk('post-processing2', 'pp_user2', str)
+        self.pp_passwd2 = self.configchk('post-processing2', 'pp_passwd2', str)
 
         #sickrage
-        self.sickrage_label = config.has_option('sickrage', 'sickrage_label')
+        self.sickrage_label = self.configchk('sickrage', 'sickrage_label', str)
         self.sickrage_conf = {'sickrage_headers': {'Accept': 'application/json'},
-                              'sickrage_url':   config.has_option('sickrage', 'url'),
+                              'sickrage_url':   self.configchk('sickrage', 'url', str),
                               'sickrage_label': self.sickrage_label,
-                              'sickrage_delete': config.has_option('sickrage', 'sickrage_delete'),
-                              'sickrage_failed': config.has_option('sickrage', 'sickrage_failed'),
-                              'sickrage_force_next': config.has_option('sickrage', 'sickrage_force_next'),
-                              'sickrage_force_replace': config.has_option('sickrage', 'sickrage_force_replace'),
-                              'sickrage_is_priority': config.has_option('sickrage', 'sickrage_is_priority'),
-                              'sickrage_process_method': config.has_option('sickrage', 'sickrage_proces_method'),
-                              'sickrage_type': config.has_option('sickrage', 'sickrage_type')}
+                              'sickrage_delete': self.configchk('sickrage', 'delete', bool),
+                              'sickrage_failed': self.configchk('sickrage', 'failed', bool),
+                              'sickrage_force_next': self.configchk('sickrage', 'force_next', bool),
+                              'sickrage_force_replace': self.configchk('sickrage', 'force_replace', bool),
+                              'sickrage_is_priority': self.configchk('sickrage', 'is_priority', bool),
+                              'sickrage_process_method': self.configchk('sickrage', 'process_method', str),
+                              'sickrage_type': self.configchk('sickrage', 'type', str)}
 
         #sonarr
-        self.sonarr_headers = {'X-Api-Key': config.get('sonarr', 'apikey'),
+        self.sonarr_headers = {'X-Api-Key': self.configchk('sonarr', 'apikey', str),
                                'Accept': 'application/json'}
-        self.sonarr_url = config.get('sonarr', 'url')
-        self.sonarr_label = config.get('sonarr', 'sonarr_label')
+        self.sonarr_url = self.configchk('sonarr', 'url', str)
+        self.sonarr_label = self.configchk('sonarr', 'sonarr_label', str)
 
         if self.sonarr_url is not None:
             self.tv_choice = 'sonarr'
-        elif config.has_option('sickrage', 'url') is not None:
+        elif CONFIG.has_option('sickrage', 'url') is not None:
             self.tv_choice = 'sickrage'
         else:
             self.tv_choice = None
 
 
         #radarr
-        self.radarr_headers = {'X-Api-Key': config.get('radarr', 'apikey'),
+        self.radarr_headers = {'X-Api-Key': self.configchk('radarr', 'apikey', str),
                                'Accept': 'application/json'}
-        self.radarr_url = config.get('radarr', 'url')
-        self.radarr_label = config.get('radarr', 'radarr_label')
-        self.radarr_rootdir = config.get('radarr', 'radarr_rootdir')
-        self.radarr_keep_original_foldernames = config.getboolean('radarr', 'keep_original_foldernames')
-        self.dir_hd_movies = config.get('radarr', 'radarr_dir_hd_movies')
-        self.dir_sd_movies = config.get('radarr', 'radarr_dir_sd_movies')
-        self.dir_web_movies = config.get('radarr', 'radarr_dir_web_movies')
+        self.radarr_url = self.configchk('radarr', 'url', str)
+        self.radarr_label = self.configchk('radarr', 'radarr_label', str)
+        self.radarr_rootdir = self.configchk('radarr', 'radarr_rootdir', str)
+        self.radarr_keep_original_foldernames = self.configchk('radarr', 'keep_original_foldernames', bool)
+        self.dir_hd_movies = self.configchk('radarr', 'radarr_dir_hd_movies', str)
+        self.dir_sd_movies = self.configchk('radarr', 'radarr_dir_sd_movies', str)
+        self.dir_web_movies = self.configchk('radarr', 'radarr_dir_web_movies', str)
         self.hd_movies_defs = ('720p', '1080p', '4k', '2160p', 'bluray', 'remux')
         self.sd_movies_defs = ('screener', 'r5', 'dvdrip', 'xvid', 'dvd-rip', 'dvdscr', 'dvdscreener', 'ac3', 'webrip', 'bdrip')
         self.web_movies_defs = ('web-dl', 'webdl', 'hdrip', 'webrip')
 
 
         #mylar
-        self.mylar_headers = {'X-Api-Key': 'None', #config.get('mylar', 'apikey'),
+        self.mylar_headers = {'X-Api-Key': 'None', #self.configchk('mylar', 'apikey'),
                               'Accept': 'application/json'}
-        self.mylar_url = config.get('mylar', 'url')
-        self.mylar_label = config.get('mylar', 'mylar_label')
+        self.mylar_url = self.configchk('mylar', 'url', str)
+        self.mylar_label = self.configchk('mylar', 'mylar_label', str)
 
         #plex
-        self.plex_update = config.getboolean('plex', 'plex_update')
-        self.plex_host_ip = config.get('plex', 'plex_host_ip')
-        self.plex_host_port = config.get('plex', 'plex_host_port')
-        self.plex_login = config.get('plex', 'plex_login')
-        self.plex_password = config.get('plex', 'plex_password')
-        self.plex_token = config.get('plex', 'plex_token')
+        self.plex_update = self.configchk('plex', 'plex_update', bool)
+        self.plex_host_ip = self.configchk('plex', 'plex_host_ip', str)
+        self.plex_host_port = self.configchk('plex', 'plex_host_port', bool)
+        self.plex_login = self.configchk('plex', 'plex_login', str)
+        self.plex_password = self.configchk('plex', 'plex_password', str)
+        self.plex_token = self.configchk('plex', 'plex_token', str)
 
         self.confinfo = {'sonarr': {'sonarr_headers': self.sonarr_headers,
                                     'sonarr_url':     self.sonarr_url,
@@ -394,12 +398,12 @@ class QueueR(object):
 
                     os.environ['harpoon_defaultdir'] = self.defaultdir
                     os.environ['harpoon_pp_host'] = self.pp_host
-                    os.environ['harpoon_pp_sshport'] = self.pp_sshport
+                    os.environ['harpoon_pp_sshport'] = str(self.pp_sshport)
                     os.environ['harpoon_pp_user'] = self.pp_user
                     os.environ['harpoon_pp_passwd'] = self.pp_passwd
 
                     os.environ['harpoon_pp_host2'] = self.pp_host2
-                    os.environ['harpoon_pp_sshport2'] = self.pp_sshport2
+                    os.environ['harpoon_pp_sshport2'] = str(self.pp_sshport2)
                     os.environ['harpoon_pp_user2'] = self.pp_user2
                     os.environ['harpoon_pp_passwd2'] = self.pp_passwd2
 
@@ -728,6 +732,26 @@ class QueueR(object):
                 return "%3.1f%s%s" % (num, unit, suffix)
             num /= 1024.0
         return "%.1f%s%s" % (num, 'Yi', suffix)
+
+
+    def configchk(self, section, id, type):
+        if config.has_option(section, id):
+            try:
+                if type == bool:
+                    return config.getboolean(section, id)
+                elif type == int:
+                    return config.getint(section, id)
+                elif type == str:
+                    return config.get(section, id)
+            except ValueError:
+                #will be raised if option is left blank in conf, so set it to default value.
+                pass
+        if type == bool:
+            return False
+        elif type == int:
+            return 0
+        elif type == str:
+            return None
 
 
     def moviecheck(self, movieinfo):
@@ -1144,5 +1168,4 @@ class ThreadedTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
 
 if __name__ == '__main__':
     gf = QueueR()
-#    gf.worker_main()
 
