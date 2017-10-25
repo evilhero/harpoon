@@ -1,3 +1,18 @@
+#  This file is part of Harpoon.
+#
+#  Harpoon is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  Harpoon is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with Harpoon.  If not, see <http://www.gnu.org/licenses/>.
+
 import requests
 import os
 import sys
@@ -31,7 +46,7 @@ class Plex(object):
             return tokenchk
 
         sections = self.sections()
-        logger.info('[HARPOON-PLEX] Sections Present on PMS: %s' % sections)
+        #logger.info('[HARPOON-PLEX] Sections Present on PMS: %s' % sections)
         if sections['status'] is True:
             updater = self.update(sections)
             return updater
@@ -39,7 +54,7 @@ class Plex(object):
             return sections
 
     def auth(self):
-        if self.plex_token == '':
+        if any([self.plex_token == '', self.plex_token is None]):
             #step 1 - post request to plex.tv/users/sign_in.json to get x-plex-token since every application needs a unique token.
             url = 'https://plex.tv/users/sign_in.json'
             base64string = base64.encodestring('%s:%s' % (self.plex_login, self.plex_password)).replace('\n', '')
@@ -58,7 +73,6 @@ class Plex(object):
                 self.plex_token = data['user']['authToken']
                 self.plex_uuid = data['user']['uuid']
                 logger.info('[HARPOON-PLEX] Successfully retrieved authorization token for PMS integration')
-                logger.info(data)
                 return {'status': True}
             else:
                 logger.info('[HARPOON-PLEX] Unable to succesfully authenticate - check your settings and will try again next time..')
@@ -71,7 +85,6 @@ class Plex(object):
         headers = {'X-Plex-Token': str(self.plex_token)}
 
         logger.info('[HARPOON-PLEX] Querying plex for library / sections required for application usage.')
-
         r = requests.get(url, headers=headers)
         logger.info('[HARPOON-PLEX] Status Code: %s' % r.status_code)
         if any([r.status_code == 200, r.status_code == 201]):

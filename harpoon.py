@@ -1,4 +1,19 @@
 #!/usr/bin/python
+#  This file is part of Harpoon.
+#
+#  Harpoon is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  Harpoon is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with Harpoon.  If not, see <http://www.gnu.org/licenses/>.
+
 import sys, os
 sys.path.insert(1, os.path.join(os.path.dirname(__file__), 'lib'))
 
@@ -188,7 +203,9 @@ class QueueR(object):
         #plex
         self.plex_update = self.configchk('plex', 'plex_update', bool)
         self.plex_host_ip = self.configchk('plex', 'plex_host_ip', str)
-        self.plex_host_port = self.configchk('plex', 'plex_host_port', bool)
+        self.plex_host_port = self.configchk('plex', 'plex_host_port', int)
+        if self.pp_sshport2 == 0:
+            self.plex_host_port = 32400
         self.plex_login = self.configchk('plex', 'plex_login', str)
         self.plex_password = self.configchk('plex', 'plex_password', str)
         self.plex_token = self.configchk('plex', 'plex_token', str)
@@ -469,7 +486,7 @@ class QueueR(object):
                         logger.info('[PLEX-UPDATE] Now submitting update library request to plex')
                         plexit = plex.Plex({'plex_update':     self.plex_update,
                                             'plex_host_ip':    self.plex_host_ip,
-                                            'plex_host_port':  self.plex_host_port,
+                                            'plex_host_port':  str(self.plex_host_port),
                                             'plex_token':      self.plex_token,
                                             'plex_login':      self.plex_login,
                                             'plex_password':   self.plex_password,
@@ -968,7 +985,8 @@ class QueueR(object):
                                         logger.info('Status is now completed - forcing removal of HASH from queue.')
                                         self.queue.pop(xc['hash'])
                                     else:
-                                        logger.info('HASH already exists in queue in a status of ' + xc['stage'] + ' - avoiding duplication: ' + hashfile)
+                                        pass
+                                        #logger.info('HASH already exists in queue in a status of ' + xc['stage'] + ' - avoiding duplication: ' + hashfile)
                             else:
                                 logger.info('HASH not in queue - adding : ' + hashfile)
                                 CKQUEUE.append({'hash':   hashfile,
@@ -1057,7 +1075,6 @@ class QueueR(object):
 
         def filesafe(self, name):
             import unicodedata
-            logger.info('name: %s' % name)
 
             try:
                 name = name.decode('utf-8')
@@ -1068,10 +1085,8 @@ class QueueR(object):
                 name = re.sub(u'\u2014', ' - ', name)
             try:
                 u_name = unicodedata.normalize('NFKD', name).encode('ASCII', 'ignore').strip()
-                logger.info('u_name1: %s' % u_name)
             except TypeError:
                 u_name = name.encode('ASCII', 'ignore').strip()
-                logger.info('u_name2: %s' % u_name)
 
             name_filesafe = re.sub('[\:\'\"\,\?\!\\\]', '', u_name)
             name_filesafe = re.sub('[\/\*]', '-', name_filesafe)

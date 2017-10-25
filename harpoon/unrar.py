@@ -1,7 +1,19 @@
 #!/usr/bin/python
+#  This file is part of Harpoon.
+#
+#  Harpoon is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  Harpoon is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with Harpoon.  If not, see <http://www.gnu.org/licenses/>.
 
-#import logging
-#from logging import handlers
 import os
 import re
 import optparse
@@ -43,13 +55,11 @@ class UnRAR(object):
         rar_found = []
 
         for fname in dirlist:
-            logger.info('fname:' + str(fname))
             filename = fname['filename']
 
             rar_ex = r'\.(?:rar|r\d\d|\d\d\d)$'
             rar_chk = re.findall(rar_ex, filename, flags=re.IGNORECASE)
             if rar_chk:
-                logger.info('[RAR DETECTION] Detected rar : ' + filename)
                 #append the rars found to the rar_found tuple
                 rar_found.append({"directory": self.path,
                                   "filename":  filename})
@@ -112,7 +122,7 @@ class UnRAR(object):
             rar_keep['directory'] = unrardir
             rar_keep['info'] = rar_temp
             rar_keepsake.append(rar_keep)
-            logger.info(rar_keepsake)
+            #logger.info(rar_keepsake)
             return rar_keepsake
         else:
             return None
@@ -152,7 +162,6 @@ class UnRAR(object):
 
         if len(filelist) > 0:
             logger.info('there are ' + str(len(filelist)) + ' files.')
-            logger.debug(filelist)
 
         if filesfirst:
             return sorted(filelist, key=lambda x: (x['filename'], x['directory']), reverse=False)
