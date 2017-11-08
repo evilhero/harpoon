@@ -47,6 +47,8 @@ config.read(CONF_LOCATION)
 logpath = config.get('general', 'logpath')
 logger.initLogger(logpath)
 
+SOCKET_API = config.get('general', 'socket_api')
+
 #secondary queue to keep track of what's not been done, scheduled to be done, and completed.
 # 4 stages = to-do, current, reload, completed.
 CKQUEUE = []
@@ -124,7 +126,6 @@ class QueueR(object):
         self.not_loaded = 0
 
         self.conf_location = os.path.join(DATADIR, 'conf', 'harpoon.conf')
-        self.socket_api = self.configchk('general', 'socket_api', str)
         self.applylabel = self.configchk('general', 'applylabel', str)
         self.defaultdir = self.configchk('general', 'defaultdir', str)
         self.torrentfile_dir = self.configchk('general', 'torrentfile_dir', str)
@@ -1102,7 +1103,7 @@ class ThreadedTCPRequestHandler(SocketServer.BaseRequestHandler):
         data = json.loads(dt)
         logger.info(data)
         logger.info(type(data))
-        if data['apikey'] == self.socket_api:
+        if data['apikey'] == SOCKET_API:
             addq = self.add_queue(data)
             if addq is True:
                 self.send({'Status': True, 'Message': 'Successful authentication', 'Added': True})
