@@ -19,6 +19,7 @@ label="$harpoon_label"
 multiple="$harpoon_multiplebox"
 applylabel="$harpoon_applylabel"
 defaultdir="$harpoon_defaultdir"
+fileEXT=`echo "${filename##*.}" | tr '[A-Z]' '[a-z]'`
 
 if [[ "${applylabel}" == "true" ]]; then
     if [[ "${defaultdir}" == */ ]]; then
@@ -30,7 +31,8 @@ else
     cd ${defaultdir}
 fi
 
-if [[ "${filename##*.}" == "mkv" || "${filename##*.}" == "avi" || "${filename##*.}" == "mp4" || "${filename##*.}" == "mpg" || "${filename##*.}" == "mov" || "${filename##*.}" == "cbr" || "${filename##*.}" == "cbz" ]]; then
+
+if [[ $fileEXT == "mkv" || $fileEXT == "avi" || $fileEXT == "mp4" || $fileEXT == "mpg" || $fileEXT == "mov" || $fileEXT == "cbr" || $fileEXT == "cbz" ]]; then
     LCMD="pget -n 6 '$filename'"
 else
     LCMD="mirror -P 2 --use-pget-n=6 '$filename'"
