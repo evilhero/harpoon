@@ -146,12 +146,14 @@ class QueueR(object):
             self.pp_sshport = 22
         self.pp_user = self.configchk('post-processing', 'pp_user', str)
         self.pp_passwd = self.configchk('post-processing', 'pp_passwd', str)
+        self.pp_keyfile = self.configchk('post-processing2', 'pp_keyfile', str)
         self.pp_host2 = self.configchk('post-processing2', 'pp_host2', str)
         self.pp_sshport2 = self.configchk('post-processing2', 'pp_sshport2', int)
         if self.pp_sshport2 == 0:
             self.pp_sshport2 = 22
         self.pp_user2 = self.configchk('post-processing2', 'pp_user2', str)
         self.pp_passwd2 = self.configchk('post-processing2', 'pp_passwd2', str)
+        self.pp_keyfile2 = self.configchk('post-processing2', 'pp_keyfile2', str)
 
         #sickrage
         self.sickrage_label = self.configchk('sickrage', 'sickrage_label', str)
@@ -412,18 +414,33 @@ class QueueR(object):
                     os.environ['harpoon_location'] = re.sub("'", "\\'",downlocation)
                     os.environ['harpoon_label'] = labelit
                     os.environ['harpoon_applylabel'] = self.applylabel
+                    os.environ['harpoon_defaultdir'] = self.defaultdir
                     os.environ['harpoon_multiplebox'] = multiplebox
 
-                    os.environ['harpoon_defaultdir'] = self.defaultdir
-                    os.environ['harpoon_pp_host'] = self.pp_host
-                    os.environ['harpoon_pp_sshport'] = str(self.pp_sshport)
-                    os.environ['harpoon_pp_user'] = self.pp_user
-                    os.environ['harpoon_pp_passwd'] = self.pp_passwd
-
-                    os.environ['harpoon_pp_host2'] = self.pp_host2
-                    os.environ['harpoon_pp_sshport2'] = str(self.pp_sshport2)
-                    os.environ['harpoon_pp_user2'] = self.pp_user2
-                    os.environ['harpoon_pp_passwd2'] = self.pp_passwd2
+                    if any([multiplebox == '1', multiplebox == '0']):
+                        os.environ['harpoon_pp_host'] = self.pp_host
+                        os.environ['harpoon_pp_sshport'] = str(self.pp_sshport)
+                        os.environ['harpoon_pp_user'] = self.pp_user
+                        if self.pp_keyfile is not None:
+                            os.environ['harpoon_pp_keyfile'] = self.pp_keyfile
+                        else:
+                            os.environ['harpoon_pp_keyfile'] = ''
+                        if self.pp_passwd is not None:
+                            os.environ['harpoon_pp_passwd'] = self.pp_passwd
+                        else:
+                            os.environ['harpoon_pp_passwd'] = ''
+                    else:
+                        os.environ['harpoon_pp_host'] = self.pp_host2
+                        os.environ['harpoon_pp_sshport'] = str(self.pp_sshport2)
+                        os.environ['harpoon_pp_user'] = self.pp_user2
+                        if self.pp_keyfile2 is not None:
+                            os.environ['harpoon_pp_keyfile'] = self.pp_keyfile2
+                        else:
+                            os.environ['harpoon_pp_keyfile'] = ''
+                        if self.pp_passwd2 is not None:
+                            os.environ['harpoon_pp_passwd'] = self.pp_passwd2
+                        else:
+                            os.environ['harpoon_pp_passwd'] = ''
 
                     logger.info('Downlocation: %s' % re.sub("'", "\\'", downlocation))
                     logger.info('Label: %s' % labelit)

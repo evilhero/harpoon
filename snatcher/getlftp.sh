@@ -20,6 +20,12 @@ multiple="$harpoon_multiplebox"
 applylabel="$harpoon_applylabel"
 defaultdir="$harpoon_defaultdir"
 fileEXT=`echo "${filename##*.}" | tr '[A-Z]' '[a-z]'`
+HOST="$harpoon_pp_host"
+PORT="$harpoon_pp_sshport"
+USER="$harpoon_pp_user"
+PASS="$harpoon_pp_passwd"
+KEYFILE="$harpoon_pp_keyfile"
+
 
 if [[ "${applylabel}" == "true" ]]; then
     if [[ "${defaultdir}" == */ ]]; then
@@ -37,21 +43,16 @@ if [[ $fileEXT == "mkv" || $fileEXT == "avi" || $fileEXT == "mp4" || $fileEXT ==
 else
     LCMD="mirror -P 2 --use-pget-n=6 '$filename'"
 fi
-if [[ $multiple -eq 0 || $multiple -eq 1 ]]; then
-    HOST="$harpoon_pp_host"
-    PORT="$harpoon_pp_sshport"
-    USER="$harpoon_pp_user"
-    PASS="$harpoon_pp_passwd"
+
+if [[ -z $KEYFILE ]]; then
+    PARAM="$USER $PASS"
 else
-    HOST="$harpoon_pp_host2"
-    PORT="$harpoon_pp_sshport2"
-    USER="$harpoon_pp_user2"
-    PASS="$harpoon_pp_passwd2"
+    PARAM="$USER $KEYFILE"
 fi
 
 lftp<<END_SCRIPT
 open sftp://${HOST}:${PORT}
-user ${USER} ${PASS}
+user ${PARAM}
 $LCMD
 bye
 END_SCRIPT
