@@ -146,7 +146,7 @@ class QueueR(object):
             self.pp_sshport = 22
         self.pp_user = self.configchk('post-processing', 'pp_user', str)
         self.pp_passwd = self.configchk('post-processing', 'pp_passwd', str)
-        self.pp_keyfile = self.configchk('post-processing2', 'pp_keyfile', str)
+        self.pp_keyfile = self.configchk('post-processing', 'pp_keyfile', str)
         self.pp_host2 = self.configchk('post-processing2', 'pp_host2', str)
         self.pp_sshport2 = self.configchk('post-processing2', 'pp_sshport2', int)
         if self.pp_sshport2 == 0:
