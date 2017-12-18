@@ -44,10 +44,19 @@ CONF_LOCATION = os.path.join(DATADIR, 'conf', 'harpoon.conf')
 config = ConfigParser.SafeConfigParser()
 config.read(CONF_LOCATION)
 
-logpath = config.get('general', 'logpath')
+try:
+    logpath = config.get('general', 'logpath')
+except ConfigParser.NoOptionError:
+    logpath = os.path.join(DATADIR, 'logs')
+    if not os.path.isdir(logpath):
+        os.mkdir(logpath)
+
 logger.initLogger(logpath)
 
-SOCKET_API = config.get('general', 'socket_api')
+try:
+    SOCKET_API = config.get('general', 'socket_api')
+except ConfigParser.NoOptionError:
+    SOCKET_API = None
 
 #secondary queue to keep track of what's not been done, scheduled to be done, and completed.
 # 4 stages = to-do, current, reload, completed.
@@ -524,7 +533,7 @@ class QueueR(object):
                     chkrelease = cr.main()
                     if all([len(chkrelease) == 0, len(snstat['files']) > 1, not os.path.isdir(os.path.join(self.defaultdir, self.sickrage_label, snstat['name']))]):
                         #if this hits, then the retrieval from the seedbox failed probably due to another script moving into a finished/completed directory (ie. race-condition)
-                        logger.warn('[SONARR] Problem with snatched files - nothing seems to have downloaded. Retrying the snatch again in case the file was moved from a download location to a completed location on the client.')
+                        logger.warn('[SICKRAGE] Problem with snatched files - nothing seems to have downloaded. Retrying the snatch again in case the file was moved from a download location to a completed location on the client.')
                         time.sleep(10)
                         self.hash_reload = True
                         continue
@@ -759,7 +768,6 @@ class QueueR(object):
                 if any([item['mode'] == 'hash-add', item['mode'] == 'file-add']) and self.daemon is False:
                     queue.put({'mode': 'exit',
                                'item': 'None'})
-
 
     def sizeof_fmt(self, num, suffix='B'):
         for unit in ['','Ki','Mi','Gi','Ti','Pi','Ei','Zi']:
