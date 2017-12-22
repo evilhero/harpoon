@@ -486,25 +486,24 @@ class QueueR(object):
                     ss = sonarr.Sonarr(sonarr_info)
                     sonarr_process = ss.post_process()
 
-                    if sonarr_process is True:
-                        if not any([item['mode'] == 'hash-add', item['mode'] == 'file-add']):
-                            logger.info('[HARPOON] Removing completed file from queue directory.')
-                            try:
-                                os.remove(os.path.join(self.torrentfile_dir, self.sonarr_label, item['item'] + '.' + item['mode']))
-                                logger.info('[HARPOON] File removed')
-                            except:
-                                logger.warn('[HARPOON] Unable to remove file from snatch queue directory [' + item['item'] + '.' + item['mode'] + ']. You should delete it manually to avoid re-downloading')
-                        else:
-                            logger.info('[HARPOON] Completed status returned for manual post-processing of file.')
+                    if not any([item['mode'] == 'hash-add', item['mode'] == 'file-add']):
+                        logger.info('[HARPOON] Removing completed file from queue directory.')
+                        try:
+                            os.remove(os.path.join(self.torrentfile_dir, self.sonarr_label, item['item'] + '.' + item['mode']))
+                            logger.info('[HARPOON] File removed')
+                        except:
+                            logger.warn('[HARPOON] Unable to remove file from snatch queue directory [' + item['item'] + '.' + item['mode'] + ']. You should delete it manually to avoid re-downloading')
 
+                    if sonarr_process is True:
                         logger.info('[SONARR] Successfully post-processed : ' + snstat['name'])
                     else:
                         logger.info('[SONARR] Unable to confirm successful post-processing - this could be due to running out of hdd-space, an error, or something else occuring to halt post-processing of the episode.')
+                        logger.info('[SONARR] HASH: %s / label: %s' % (snstat['hash'], snstat['label']))
 
                     CKQUEUE.append({'hash':   snstat['hash'],
                                     'stage':  'completed'})
 
-                    if self.plex_update is True:
+                    if all([self.plex_update is True, sonarr_process is True]):
                         #sonarr_file = os.path.join(self.torrentfile_dir, self.sonarr_label, str(snstat['hash']) + '.hash')
                         #with open(filepath, 'w') as outfile:
                         #    json_sonarr = json.load(sonarr_file)
@@ -546,25 +545,24 @@ class QueueR(object):
                     sr = sickrage.Sickrage(sickrage_info)
                     sickrage_process = sr.post_process()
 
-                    if sickrage_process is True:
-                        if not any([item['mode'] == 'hash-add', item['mode'] == 'file-add']):
-                            logger.info('[HARPOON] Removing completed file from queue directory.')
-                            try:
-                                os.remove(os.path.join(self.torrentfile_dir, self.sickrage_label, item['item'] + '.' + item['mode']))
-                                logger.info('[HARPOON] File removed')
-                            except:
-                                logger.warn('[HARPOON] Unable to remove file from snatch queue directory [' + item['item'] + '.' + item['mode'] + ']. You should delete it manually to avoid re-downloading')
-                        else:
-                            logger.info('[HARPOON] Completed status returned for manual post-processing of file.')
+                    if not any([item['mode'] == 'hash-add', item['mode'] == 'file-add']):
+                        logger.info('[HARPOON] Removing completed file from queue directory.')
+                        try:
+                            os.remove(os.path.join(self.torrentfile_dir, self.sickrage_label, item['item'] + '.' + item['mode']))
+                            logger.info('[HARPOON] File removed')
+                        except:
+                            logger.warn('[HARPOON] Unable to remove file from snatch queue directory [' + item['item'] + '.' + item['mode'] + ']. You should delete it manually to avoid re-downloading')
 
+                    if sickrage_process is True:
                         logger.info('[SICKRAGE] Successfully post-processed : ' + snstat['name'])
                     else:
                         logger.info('[SICKRAGE] Unable to confirm successful post-processing - this could be due to running out of hdd-space, an error, or something else occuring to halt post-processing of the episode.')
+                        logger.info('[SICKRAGE] HASH: %s / label: %s' % (snstat['hash'], snstat['label']))
 
                     CKQUEUE.append({'hash':   snstat['hash'],
                                     'stage':  'completed'})
 
-                    if self.plex_update is True:
+                    if all([self.plex_update is True, sickrage_process is True]):
 
                         logger.info('[PLEX-UPDATE] Now submitting update library request to plex')
                         plexit = plex.Plex({'plex_update':     self.plex_update,
@@ -616,31 +614,13 @@ class QueueR(object):
                     rr = radarr.Radarr(radarr_info)
                     radarr_process = rr.post_process()
 
-                    if radarr_process['status'] is True:
-                        if not any([item['mode'] == 'hash-add', item['mode'] == 'file-add']):
-                            logger.info('[HARPOON] Removing completed file from queue directory.')
-                            try:
-                                os.remove(os.path.join(self.torrentfile_dir, self.radarr_label, item['item'] + '.' + item['mode']))
-                                logger.info('[HARPOON] File removed')
-                            except:
-                                logger.warn('[HARPOON] Unable to remove file from snatch queue directory [' + item['item'] + '.' + item['mode'] + ']. You should delete it manually to avoid re-downloading.')
-                        else:
-                            logger.info('[HARPOON] Completed status returned for manual post-processing of file.')
-
-                        logger.info('[SONARR] Successfully post-processed : ' + snstat['name'])
-                    else:
-                        logger.info('[SONARR] Unable to confirm successful post-processing - this could be due to running out of hdd-space, an error, or something else occuring to halt post-processing of the movie.')
+                    if not any([item['mode'] == 'hash-add', item['mode'] == 'file-add']):
                         logger.info('[HARPOON] Removing completed file from queue directory.')
-                        if not any([item['mode'] == 'hash-add', item['mode'] == 'file-add']):
-                            try:
-                                os.remove(os.path.join(self.torrentfile_dir, self.radarr_label, item['item'] + '.' + item['mode']))
-                                logger.info('[HARPOON] File removed from queue location so as to not re-download/post-process due to previous error (ie. snatch it properly?)')
-                            except:
-                                logger.warn('[HARPOON] Unable to remove file from snatch queue directory [' + item['item'] + '.' + item['mode'] + ']. You should delete it manually to avoid re-downloading.')
-
-                        CKQUEUE.append({'hash':   snstat['hash'],
-                                        'stage':  'completed'})
-                        continue
+                        try:
+                            os.remove(os.path.join(self.torrentfile_dir, self.radarr_label, item['item'] + '.' + item['mode']))
+                            logger.info('[HARPOON] File removed')
+                        except:
+                            logger.warn('[HARPOON] Unable to remove file from snatch queue directory [' + item['item'] + '.' + item['mode'] + ']. You should delete it manually to avoid re-downloading.')
 
                     if self.radarr_keep_original_foldernames is True:
                         logger.info('[HARPOON] Keep Original FolderNames are enabled for Radarr. Altering paths ...')
@@ -650,11 +630,17 @@ class QueueR(object):
                         rof = radarr.Radarr(radarr_info)
                         radarr_keep_og = rof.og_folders()
 
+                    if radarr_process['status'] is True:
+                        logger.info('[RADARR] Successfully post-processed : ' + snstat['name'])
+                    else:
+                        logger.info('[RADARR] Unable to confirm successful post-processing - this could be due to running out of hdd-space, an error, or something else occuring to halt post-processing of the movie.')
+                        logger.info('[RADARR] HASH: %s / label: %s' % (snstat['hash'], snstat['label']))
+
                     logger.info('[RADARR] Successfully completed post-processing of ' + snstat['name'])
                     CKQUEUE.append({'hash':   snstat['hash'],
                                     'stage':  'completed'})
 
-                    if self.plex_update is True:
+                    if all([self.plex_update is True, radarr_process['status'] is True]):
                         logger.info('[PLEX-UPDATE] Now submitting update library request to plex')
                         plexit = plex.Plex({'plex_update':     self.plex_update,
                                             'plex_host_ip':    self.plex_host_ip,
@@ -674,15 +660,6 @@ class QueueR(object):
 
                 elif snstat['label'] == 'music':
                     logger.info('[MUSIC] Successfully auto-snatched!')
-#                    beets_shellcmd = '/bin/bash'
-#                    beetsScriptName = beets_shellcmd + ' ' + str('/home/hero/harpoon/harpoon/beets_import.sh').decode("string_escape")
-#                    beet_info = {}
-#                    beet_info['dirpath'] = re.sub("'", "\\'",downlocation)
-#                    beets_scriptcmd = shlex.split(beetsScriptName)
-#                    logger.info(u"Executing command " + str(beets_scriptcmd))
-#                    p, out = subprocess.Popen(beets_scriptcmd, env=beet_info)
-#                    p.communicate()
-#                    logger.info(p, out)
                     if not any([item['mode'] == 'hash-add', item['mode'] == 'file-add']):
                         logger.info('[MUSIC] Removing completed file from queue directory.')
                         try:
