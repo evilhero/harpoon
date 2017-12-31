@@ -329,7 +329,7 @@ class QueueR(object):
                                         'stage':  'current'})
                     self.working_hash = item['item']
 
-                logger.info('[' + item['mode'] +'] Now loading from queue: ' + item['item'])
+                logger.info('[' + item['mode'] +'] Now loading from queue: %s (%s items remaining in queue)' % (item['item'], self.SNQUEUE.qsize()))
             else:
                 self.hash_reload = False
 
@@ -1103,14 +1103,26 @@ class ThreadedTCPRequestHandler(SocketServer.BaseRequestHandler):
         d = self.request.recv(1024)
         dt = d.split("\n")[1]
         data = json.loads(dt)
-        logger.info(data)
-        logger.info(type(data))
+        #logger.info(type(data))
         if data['apikey'] == SOCKET_API:
-            addq = self.add_queue(data)
-            if addq is True:
-                self.send({'Status': True, 'Message': 'Successful authentication', 'Added': True})
-            else:
-                self.send({'Status': True, 'Message': 'Successful authentication', 'Added': False})
+            if data['mode'] == 'add':
+                logger.info('[API-AWARE] Request received via API for item [%s] to be remotely added to queue:' % data['hash'])
+                addq = self.add_queue(data)
+                queue_position = self.IndexableQueue(data['hash'])
+                if addq is True:
+                    self.send({'Status': True, 'Message': 'Successful authentication', 'Added': True, 'QueuePosition': queue_position})
+                else:
+                    self.send({'Status': True, 'Message': 'Successful authentication', 'Added': False})
+            elif data['mode'] == 'queue':
+                logger.info('[API-AWARE] Request received via API for listing of current queue')
+                currentqueue = None
+                if SNQUEUE.qsize() != 0:
+                    for x in reversed(CKQUEUE):
+                        if x['stage'] == 'current':
+                            currentqueue = x
+                            logger.info('currentqueue: %s' % currentqueue)
+                            break
+                self.send({'Status': True, 'QueueSize': SNQUEUE.qsize(), 'CurrentlyInProgress': currentqueue, 'QueueContent': list(SNQUEUE.queue)})
         else:
             self.send({'Status': False, 'Message': 'Invalid APIKEY', 'Added': False})
             return
@@ -1180,6 +1192,14 @@ class ThreadedTCPRequestHandler(SocketServer.BaseRequestHandler):
         else:
             logger.warn('[API-AWARE] Successfully added to queue - Prepare for GLORIOUS retrieval')
             return True
+
+    def IndexableQueue(self, item):
+        import collections
+        d = list(SNQUEUE.queue)
+        queue_position = [i for i,t in enumerate(d) if t['item'] == item]
+        queue_pos = '%s/%s' % (''.join(str(e) for e in queue_position), SNQUEUE.qsize())
+        logger.info('queue position of %s' % queue_pos)
+        return queue_pos
 
 class ThreadedTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
     pass
