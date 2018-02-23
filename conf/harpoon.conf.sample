@@ -30,6 +30,7 @@ MUSICDIR=
 MOVIEDIR=
 XXXDIR=
 COMICSDIR=
+BOOKDIR=
 
 [sonarr]
 URL=
@@ -57,6 +58,16 @@ KEEP_ORIGINAL_FOLDERNAMES=false
 [mylar]
 URL=http://localhost:8090
 MYLAR_LABEL=comics
+
+[lidarr]
+URL=
+APIKEY=
+LIDARR_LABEL=
+
+[lazylibrarian]
+URL=
+APIKEY=
+LAZYLIBRARIAN_LABEL=
 
 [plex]
 PLEX_UPDATE=true

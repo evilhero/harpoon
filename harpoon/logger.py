@@ -23,10 +23,10 @@ logger = logging.getLogger('harpoon')
 
 def initLogger(logpath):
     logging.basicConfig(level=logging.DEBUG)
-    logging.getLogger('apscheduler.scheduler').setLevel(logging.WARN)
-    logging.getLogger('apscheduler.threadpool').setLevel(logging.WARN)
-    logging.getLogger('apscheduler.scheduler').propagate = False
-    logging.getLogger('apscheduler.threadpool').propagate = False
+#    logging.getLogger('apscheduler.scheduler').setLevel(logging.WARN)
+#    logging.getLogger('apscheduler.threadpool').setLevel(logging.WARN)
+#    logging.getLogger('apscheduler.scheduler').propagate = False
+#    logging.getLogger('apscheduler.threadpool').propagate = False
     logger = logging.getLogger()
 
     # Setup file logger

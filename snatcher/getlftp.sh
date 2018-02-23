@@ -38,7 +38,7 @@ else
 fi
 
 
-if [[ $fileEXT == "mkv" || $fileEXT == "avi" || $fileEXT == "mp4" || $fileEXT == "mpg" || $fileEXT == "mov" || $fileEXT == "cbr" || $fileEXT == "cbz" ]]; then
+if [[ $fileEXT == "mkv" || $fileEXT == "avi" || $fileEXT == "mp4" || $fileEXT == "mpg" || $fileEXT == "mov" || $fileEXT == "cbr" || $fileEXT == "cbz" || $fileEXT == "epub" || $fileEXT == "mobi" || $fileEXT == "azw3" || $fileEXT == "pdf" || $fileEXT == "mp3" || $fileEXT == "flac" ]]; then
     LCMD="pget -n 6 '$filename'"
 else
     LCMD="mirror -P 2 --use-pget-n=6 '$filename'"

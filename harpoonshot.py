@@ -35,6 +35,8 @@ log_path = config.get('general', 'logpath')
 sonarr_label = config.get('sonarr', 'sonarr_label')
 radarr_label = config.get('radarr', 'radarr_label')
 mylar_label = config.get('mylar', 'mylar_label')
+lidarr_label = config.get('lidarr', 'lidarr_label')
+lazylibrarian_label = config.get('lazylibrarian', 'lazylibrarian_label')
 torrentfile_dir = config.get('general', 'torrentfile_dir')
 
 # Setup file logger
@@ -49,8 +51,11 @@ file_handler.setLevel(logging.DEBUG)
 file_handler.setFormatter(file_formatter)
 logger.addHandler(file_handler)
 
+filecontent = None
+
 try:
     mode = sys.argv[1]
+    args = sys.argv[1:]
 except IndexError:
     try:
         if 'mylar_method' in os.environ:
@@ -68,7 +73,7 @@ except IndexError:
             #ignore non-torrent snatches...
             sys.exit(1)
     except:
-        logger.warn('Cannot determine if item came from sonarr / radarr / mylar ... Unable to harpoon item. ')
+        logger.warn('Cannot determine if item came from sonarr / radarr / mylar / lidarr / lazylibrarian ... Unable to harpoon item. ')
         sys.exit(1)
 else:
     if mode == 'sonarr':
@@ -81,21 +86,58 @@ else:
             inputfile = re.sub('-', '//', inputfile).strip()
         label = radarr_label
         filetype = '.file'
+    elif mode == 'lidarr':
+        inputfile = os.environ.get('lidarr_release_title')
+        if '//' in inputfile:
+            inputfile = re.sub('-', '//', inputfile).strip()
+        label = lidarr_label
+        filetype = '.file'
+    elif len(args) > 2:
+        mydict = {}
+        n = len(args)
+        while n:
+            try:
+                mydict[args[n-2]] = args[n-1]
+                n -= 2
+            except IndexError:
+                break
+        if 'DownloadID' in mydict.keys(): # LazyLibrarian book or audiobook
+            mode = 'lazylibrarian'
+            inputfile = mydict['DownloadID']
+            if len(inputfile) > 20:
+                inputfile = inputfile.upper()
+            label = lazylibrarian_label
+            filetype = '.hash'
+            filecontent = mydict
+        else:
+            logger.warn('Cannot determine if item came from sonarr / radarr / mylar / lidarr / lazylibrarian ... Unable to harpoon item. ')
+            sys.exit(1)
+
     else:
-        logger.warn('Cannot determine if item came from sonarr / radarr / mylar ... Unable to harpoon item. ')
+        logger.warn('Cannot determine if item came from sonarr / radarr / mylar / lidarr / lazylibrarian ... Unable to harpoon item. ')
         sys.exit(1)
 
 logger.info("Torrent name to use: %s" % inputfile)
 
 path = os.path.join(torrentfile_dir, label)
 
-#if mode == 'mylar':
-#    filepath = os.path.join(path, inputfile + filetype)
-#else:
-filepath = os.path.join(path, inputfile + '.' + mode + filetype)
+if os.path.exists(path):
+    #if mode == 'mylar':
+    #    filepath = os.path.join(path, inputfile + filetype)
+    #else:
+    filepath = os.path.join(path, inputfile + '.' + mode + filetype)
 
-#create empty file with the given filename and update the mtime
-with open(filepath, 'w'):
-     os.utime(filepath, None)
+    #create empty file with the given filename and update the mtime
+    try:
+        with open(filepath, 'w') as outfile:
+            os.utime(filepath, None)
+            if filecontent:
+                outfile.write(json.dumps(filecontent))
+    except e as Exception:
+        logger.info("Exception: %s" % e)
+        sys.exit(1)
 
+else:
+    logger.warn('Path "%s" does not exists.  Please create.' % path)
+    sys.exit(1)
 logger.info('Successfully created .file to allow for harpooning.')
