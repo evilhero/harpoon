@@ -52,7 +52,7 @@ file_handler.setFormatter(file_formatter)
 logger.addHandler(file_handler)
 
 filecontent = None
-
+info = json.dumps(dict(os.environ), indent=4)
 try:
     mode = sys.argv[1]
     args = sys.argv[1:]
@@ -122,16 +122,15 @@ logger.info("Torrent name to use: %s" % inputfile)
 path = os.path.join(torrentfile_dir, label)
 
 if os.path.exists(path):
-    #if mode == 'mylar':
-    #    filepath = os.path.join(path, inputfile + filetype)
-    #else:
     filepath = os.path.join(path, inputfile + '.' + mode + filetype)
 
     #create empty file with the given filename and update the mtime
     try:
         with open(filepath, 'w') as outfile:
             os.utime(filepath, None)
-            if filecontent:
+            if any([mode == 'sonarr', mode == 'radarr', mode == 'mylar', mode == 'lidarr']):
+                outfile.write(info)
+            elif filecontent:
                 outfile.write(json.dumps(filecontent))
     except e as Exception:
         logger.info("Exception: %s" % e)

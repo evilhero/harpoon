@@ -19,13 +19,12 @@ label="$harpoon_label"
 multiple="$harpoon_multiplebox"
 applylabel="$harpoon_applylabel"
 defaultdir="$harpoon_defaultdir"
-fileEXT=`echo "${filename##*.}" | tr '[A-Z]' '[a-z]'`
 HOST="$harpoon_pp_host"
 PORT="$harpoon_pp_sshport"
 USER="$harpoon_pp_user"
 PASS="$harpoon_pp_passwd"
 KEYFILE="$harpoon_pp_keyfile"
-
+LCMD="$harpoon_lcmd"
 
 if [[ "${applylabel}" == "true" ]]; then
     if [[ "${defaultdir}" == */ ]]; then
@@ -37,12 +36,6 @@ else
     cd ${defaultdir}
 fi
 
-
-if [[ $fileEXT == "mkv" || $fileEXT == "avi" || $fileEXT == "mp4" || $fileEXT == "mpg" || $fileEXT == "mov" || $fileEXT == "cbr" || $fileEXT == "cbz" || $fileEXT == "epub" || $fileEXT == "mobi" || $fileEXT == "azw3" || $fileEXT == "pdf" || $fileEXT == "mp3" || $fileEXT == "flac" ]]; then
-    LCMD="pget -n 6 '$filename'"
-else
-    LCMD="mirror -P 2 --use-pget-n=6 '$filename'"
-fi
 
 if [[ -z $KEYFILE ]]; then
     PARAM="$USER $PASS"

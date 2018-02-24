@@ -152,7 +152,7 @@ class UnRAR(object):
 
     def traverse_directories(self, dir, filesfirst=False):
         filelist = []
-        for (dirname, subs, files) in os.walk(dir):
+        for (dirname, subs, files) in os.walk(dir, followlinks=True):
 
             for fname in files:
 

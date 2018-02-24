@@ -32,7 +32,7 @@ import bencode
 import shutil
 
 import harpoon
-from harpoon import rtorrent, unrar, logger, sonarr, radarr, plex, sickrage, lazylibrarian, lidarr
+from harpoon import rtorrent, unrar, logger, sonarr, radarr, plex, sickrage, mylar, lazylibrarian, lidarr
 
 from apscheduler.scheduler import Scheduler
 
@@ -69,7 +69,16 @@ class QueueR(object):
     def __init__(self):
 
         #accept parser options for cli usage
-        parser = optparse.OptionParser()
+        description = ("Harpoon. "
+                       "A python-based CLI daemon application that will monitor a remote location "
+                       "(ie.seedbox) & then download from the remote location to the local "
+                       "destination which is running an automation client. "
+                       "Unrar, cleanup and client-side post-processing as required. "
+                       "Also supports direct dropping of .torrent files into a watch directory. "
+                       "Supported client-side applications: "
+                       "Sonarr, Radarr, Lidarr, Mylar, LazyLibrarian, SickRage")
+
+        parser = optparse.OptionParser(description=description)
         parser.add_option('-a', '--add', dest='add', help='Specify a filename to snatch from specified torrent client when monitor is running already.')
         parser.add_option('-s', '--hash', dest='hash', help='Specify a HASH to snatch from specified torrent client.')
         parser.add_option('-l', '--label', dest='label', help='For use ONLY with -t, specify a label that the HASH has that harpoon can check against when querying the torrent client.')
@@ -108,7 +117,7 @@ class QueueR(object):
         if options.pidfile:
             self.pidfile = str(options.pidfile)
 
-            # If the pidfile already exists, mylar may still be running, so exit
+            # If the pidfile already exists, harpoon may still be running, so exit
             if os.path.exists(self.pidfile):
                 sys.exit("PID file '" + self.pidfile + "' already exists. Exiting.")
 
@@ -139,7 +148,12 @@ class QueueR(object):
         self.defaultdir = self.configchk('general', 'defaultdir', str)
         self.torrentfile_dir = self.configchk('general', 'torrentfile_dir', str)
         self.torrentclient = self.configchk('general', 'torrentclient', str)
-
+        self.lcmdparallel = self.configchk('lcmd_parallel', 'lcmd_parallel', str)
+        self.lcmdsegments = self.configchk('lcmd_segments', 'lcmd_segments', str)
+        if self.lcmdsegments is None:
+            self.lcmdsegments = '2'
+        if self.lcmdparallel is None:
+            self.lcmdparallel = '6'
         #defaultdir is the default download directory on your rtorrent client. This is used to determine if the download
         #should initiate a mirror vs a get (multiple file vs single vs directories)
         self.tvdir = self.configchk('label_directories', 'tvdir', str)
@@ -191,6 +205,12 @@ class QueueR(object):
         else:
             self.tv_choice = None
 
+        self.extensions = ['mkv', 'avi', 'mp4', 'mpg', 'mov', 'cbr', 'cbz', 'flac', 'mp3', 'alac', 'epub', 'mobi', 'pdf', 'azw3', '4a', 'm4b', 'm4a']
+        newextensions = self.configchk('general', 'extensions', str)
+        if newextensions is not None:
+            for x in newextensions.split(","):
+                if x != "":
+                    self.extensions.append(x)
 
         #radarr
         self.radarr_headers = {'X-Api-Key': self.configchk('radarr', 'apikey', str),
@@ -216,7 +236,8 @@ class QueueR(object):
         #mylar
         self.mylar_headers = {'X-Api-Key': 'None', #self.configchk('mylar', 'apikey'),
                               'Accept': 'application/json'}
-        self.mylar_url = self.configchk('mylar', 'url', str)
+        self.mylar_apikey = self.configchk('mylar', 'mylar_apikey', str)
+        self.mylar_url = self.configchk('mylar', 'mylar_url', str)
         self.mylar_label = self.configchk('mylar', 'mylar_label', str)
 
         #lazylibrarian
@@ -224,7 +245,6 @@ class QueueR(object):
         self.lazylibrarian_apikey = self.configchk('lazylibrarian', 'apikey', str)
         self.lazylibrarian_url = self.configchk('lazylibrarian', 'url', str)
         self.lazylibrarian_label = self.configchk('lazylibrarian', 'lazylibrarian_label', str)
-
 
         #plex
         self.plex_update = self.configchk('plex', 'plex_update', bool)
@@ -453,6 +473,13 @@ class QueueR(object):
                     os.environ['harpoon_applylabel'] = self.applylabel
                     os.environ['harpoon_defaultdir'] = self.defaultdir
                     os.environ['harpoon_multiplebox'] = multiplebox
+
+                    if any([downlocation.endswith(ext) for ext in self.extensions]):
+                        combined_lcmd = 'pget -n %s \"%s\"' % (self.lcmdsegments, downlocation)
+                    else:
+                        combined_lcmd = 'mirror -P %s --use-pget-n=%s \"%s\"' % (self.lcmdparallel, self.lcmdsegments, downlocation)
+
+                    os.environ['harpoon_lcmd'] = combined_lcmd
 
                     if any([multiplebox == '1', multiplebox == '0']):
                         os.environ['harpoon_pp_host'] = self.pp_host
@@ -855,7 +882,21 @@ class QueueR(object):
 
                     logger.info('Auto-Snatch of torrent completed.')
 
-                elif snstat['label'] == 'comics':
+                elif snstat['label'] == self.mylar_label:
+
+                    logger.info('[MYLAR] Placing call to update Mylar')
+                    mylar_info = {'mylar_url':        self.mylar_url,
+                                  'mylar_headers':    self.mylar_headers,
+                                  'mylar_apikey':     self.mylar_apikey,
+                                  'mylar_label':      self.mylar_label,
+                                  'applylabel':       self.applylabel,
+                                  'torrentfile_dir':  self.torrentfile_dir,
+                                  'defaultdir':       self.defaultdir,
+                                  'snstat':           snstat}
+
+                    my = mylar.Mylar(mylar_info)
+                    mylar_process = my.post_process()
+
                     logger.info('[MYLAR] Successfully auto-snatched!')
                     if not any([item['mode'] == 'hash-add', item['mode'] == 'file-add']):
                         logger.info('[MYLAR] Removing completed file from queue directory.')
@@ -1054,7 +1095,7 @@ class QueueR(object):
 
         def Scanner(self):
             extensions = ['.file','.hash','.torrent']
-            for (dirpath, dirnames, filenames) in os.walk(self.conf_info['torrentfile_dir']):
+            for (dirpath, dirnames, filenames) in os.walk(self.conf_info['torrentfile_dir'],followlinks=True):
                 for f in filenames:
                     if any([f.endswith(ext) for ext in extensions]):
                         if f.endswith('.file'):
@@ -1169,8 +1210,9 @@ class QueueR(object):
                                 try:
                                     os.rename(fpath,npath)
                                     logger.info('Succesfully renamed file to ' + npath)
-                                except:
-                                    logger.warn('Unable to rename file : ' + fpath)
+                                except Exception as e:
+                                    logger.warn('[%s] Unable to rename file %s to %s' % (e, fpath, npath))
+                                    continue
 
         def history_poll(self, torrentname):
             path = self.conf_info['torrentfile_dir']
