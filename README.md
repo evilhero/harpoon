@@ -157,6 +157,22 @@ This is a python-cli based application that can either be run from the cli direc
 
 ``RADARR_DIR_SD_MOVIES`` [*path*] = if original_filenames is enabled, you can distinguish a seperate directory for SD movies here (will move to this directory after post-processing, and then refresh radarr so that it will see new path as a final static path)...
 
+**[lidarr]**
+
+``URL`` [*local url*] = full url [host:port/path] where lidarr resides
+
+``APIKEY`` [*apikey*] = the apikey for lidarr
+
+``LIDARR_LABEL`` [*label*] = the label that lidarr assigns to torrents on the given client (normally 'music')
+
+**[lazylibrarian]**
+
+``URL`` [*local url*] = full url [host:port/path] where lazylibrarian resides
+
+``APIKEY`` [*apikey*] = the apikey for lazylibrarian
+
+``LAZYLIBRARIAN_LABEL`` [*label*] = the label that lazylibrarian assigns to torrents on the given client (normally 'books' or 'lazylibrarian')
+
 **[plex]**
 
 ``PLEX_UPDATE`` [*true/false*] = enable the option to perform a plex rescan of the given library that's just been downloaded/post-processed
@@ -187,8 +203,13 @@ For organizational/operational usage it is best to create a folder for .torrent 
 **For Sonarr/Radarr/Lidarr**
 ----------
 
-In either/both application, go to Settings / Connections and create a custom script. Give the name something obvious 'HARPOON', and set the On Grab option to Yes, and the On Download option to No.  Set the Path option to the location of your python executable (ie. /usr/bin/python), and then in the arguments set it to the complete path to the harpoonshot.py file which is currently located in the root of the harpoon folder with the application name at the end of the argument line (ie. /opt/harpoon/harpoonshot.py radarr OR /opt/harpoon/harpoonshot.py sonarr). 
+In any of the above applications, go to Settings / Connections and create a custom script. Give the name something obvious 'HARPOON', and set the On Grab option to Yes, and the On Download option to No.  Set the Path option to the location of your python executable (ie. /usr/bin/python), and then in the arguments set it to the complete path to the harpoonshot.py file which is currently located in the root of the harpoon folder with the application name at the end of the argument line (ie. /opt/harpoon/harpoonshot.py radarr OR /opt/harpoon/harpoonshot.py sonarr).
 
 Save the script and make sure it's enabled. That's it - now whenever sonarr/radarr/lidarr snatch a torrent it will still send it directly to the given client, but it will also run the harpoonshot.py script right after which contains information that allows harpoon to monitor the file by hash on the torrent client. It will create a file in the given watch directory folder, under the specific label, as the hash of the file with the extension of either .radarr.hash, .sonarr.hash, or lidarr.hash once it's been successfully added to the watch queue (once post-processing has been successfully completed, these files in the watch directory are automatically removed).
+
+**For LazyLibrarian**
+----------
+
+Go to Config, Notifications, Enable Custom Notifications.  Select Notify on Snatch, and enter the full path to harpoonshot.py.  Save the configuration.  You may test the script, if you like.   Whenever lazylibrarian snatches a torrent, it will run harpoonshot.py, and allow harpoon to monitor the file on the torrent client.
 
 ....more to be added
