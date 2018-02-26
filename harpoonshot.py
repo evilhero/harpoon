@@ -84,12 +84,16 @@ else:
         inputfile = os.environ.get('radarr_release_title')
         if '//' in inputfile:
             inputfile = re.sub('-', '//', inputfile).strip()
+        if '/' in inputfile: # FreeBSD matching
+            inputfile = inputfile.replace('/', '-')
         label = radarr_label
         filetype = '.file'
     elif mode == 'lidarr':
         inputfile = os.environ.get('lidarr_release_title')
         if '//' in inputfile:
             inputfile = re.sub('-', '//', inputfile).strip()
+        if '/' in inputfile:
+            inputfile = re.sub('-', '/', inputfile).strip()
         label = lidarr_label
         filetype = '.file'
     elif len(args) > 2:
