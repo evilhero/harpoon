@@ -30,6 +30,7 @@ import datetime
 import hashlib
 import bencode
 import shutil
+from StringIO import StringIO
 
 import harpoon
 from harpoon import rtorrent, unrar, logger, sonarr, radarr, plex, sickrage, mylar, lazylibrarian, lidarr
@@ -513,10 +514,18 @@ class QueueR(object):
                     script_cmd = shlex.split(curScriptName)# + [downlocation, labelit, multiplebox]
                     logger.info(u"Executing command " + str(script_cmd))
 
-                    p = subprocess.Popen(script_cmd, env=dict(os.environ))
-                    p.communicate()
-
-                    snatch_status = 'COMPLETED'
+                    try:
+                        p = subprocess.Popen(script_cmd, env=dict(os.environ), stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+                        output, error = p.communicate()
+                        if error:
+                            logger.warn('[ERROR] %s' % error)
+                        if output:
+                            logger.info('[OUTPUT] %s'% output)
+                    except Exception as e:
+                        logger.warn('Exception occured: %s' % e)
+                        continue
+                    else:
+                        snatch_status = 'COMPLETED'
 
                 if all([snstat['label'] == self.sonarr_label, self.tv_choice == 'sonarr']):  #probably should be sonarr_label instead of 'tv'
 
