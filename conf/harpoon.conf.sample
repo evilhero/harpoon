@@ -56,8 +56,9 @@ RADARR_LABEL=
 KEEP_ORIGINAL_FOLDERNAMES=false
 
 [mylar]
-URL=http://localhost:8090
-MYLAR_LABEL=comics
+URL=
+APIKEY=
+MYLAR_LABEL=
 
 [lidarr]
 URL=

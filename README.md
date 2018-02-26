@@ -165,6 +165,14 @@ This is a python-cli based application that can either be run from the cli direc
 
 ``LIDARR_LABEL`` [*label*] = the label that lidarr assigns to torrents on the given client (normally 'music')
 
+**[mylar]**
+
+``URL`` [*local url*] = full url [host:port/path] where mylar resides
+
+``APIKEY`` [*apikey*] = the apikey for mylar
+
+``MYLAR_LABEL`` [*label*] = the label that mylar assigns to torrents on the given client (normally 'comics')
+
 **[lazylibrarian]**
 
 ``URL`` [*local url*] = full url [host:port/path] where lazylibrarian resides
@@ -207,9 +215,22 @@ In any of the above applications, go to Settings / Connections and create a cust
 
 Save the script and make sure it's enabled. That's it - now whenever sonarr/radarr/lidarr snatch a torrent it will still send it directly to the given client, but it will also run the harpoonshot.py script right after which contains information that allows harpoon to monitor the file by hash on the torrent client. It will create a file in the given watch directory folder, under the specific label, as the hash of the file with the extension of either .radarr.hash, .sonarr.hash, or lidarr.hash once it's been successfully added to the watch queue (once post-processing has been successfully completed, these files in the watch directory are automatically removed).
 
+**For Mylar**
+---------
+In Configuration: 
+
+- Quality & Post-Processing tab, Post-Processing section, *Run script AFTER an item has been snatched and sent to client* is enabled. Enter full path location to harpoonshot.py in the On Snatch Script Location field.
+
+- Web Interface tab, API, *Enable API* (if not already enabled). *Generate* Mylar API Key if one doesn't exist already.
+
+- Save configuration and restart Mylar so ApiKey will be valid.
+
+- Set values in harpoon.conf for Mylar usage as indicated above.
+
+
 **For LazyLibrarian**
 ----------
 
-Go to Config, Notifications, Enable Custom Notifications.  Select Notify on Snatch, and enter the full path to harpoonshot.py.  Save the configuration.  You may test the script, if you like.   Whenever lazylibrarian snatches a torrent, it will run harpoonshot.py, and allow harpoon to monitor the file on the torrent client.
+Go to Config, Notifications, *Enable Custom Notifications*.  Select *Notify on Snatch*, and enter the full path to harpoonshot.py.  Save the configuration.  You may test the script, if you like.   Whenever lazylibrarian snatches a torrent, it will run harpoonshot.py, and allow harpoon to monitor the file on the torrent client.
 
 ....more to be added

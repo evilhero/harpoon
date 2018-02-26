@@ -237,8 +237,8 @@ class QueueR(object):
         #mylar
         self.mylar_headers = {'X-Api-Key': 'None', #self.configchk('mylar', 'apikey'),
                               'Accept': 'application/json'}
-        self.mylar_apikey = self.configchk('mylar', 'mylar_apikey', str)
-        self.mylar_url = self.configchk('mylar', 'mylar_url', str)
+        self.mylar_apikey = self.configchk('mylar', 'apikey', str)
+        self.mylar_url = self.configchk('mylar', 'url', str)
         self.mylar_label = self.configchk('mylar', 'mylar_label', str)
 
         #lazylibrarian
