@@ -63,7 +63,7 @@ class LazyLibrarian(object):
         payload = {'cmd':  'forceProcess',
                    'dir': brandnewpath,
                    'apikey': self.lazylibrarian_apikey,
-                   'ignorekeepseeding': 'True',}
+                   'ignoreclient': 'True',}
 
         logger.info('[LAZYLIBRARIAN] Posting url: %s' % url)
         logger.info('[LAZYLIBRARIAN] Posting to completed download handling now: %s' % payload)
