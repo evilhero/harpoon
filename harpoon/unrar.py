@@ -79,16 +79,21 @@ class UnRAR(object):
                         logger.info('[RAR MANAGER] [ ' + str(len(rk['info'])) + ' ] ') # : ' + str(rar_info))
                         logger.info('[RAR MANAGER] First Rar detection initated for : ' + str(rk['start_rar']))
                         # extract the rar's biatch.
-                        rar_status = self.unrar_it(rk)
-                        if rar_status == "success":
-                            logger.info('[RAR MANAGER] Successfully extracted rars.')
-                            for rs in rk['info']:
-                                os.remove(os.path.join(self.path, rs['filename']))
-                                logger.info('[RAR MANAGER] Removal of : ' + os.path.join(self.path, rs['filename']))
-                            #remove the crap in the directory that got logged earlier ( think its done later though )
-                            logger.info('[RAR MANAGER] Removal of start rar: ' + rk['start_rar'])
-                            os.remove(rk['start_rar'])
-                            status = 'success'
+                        try:
+                            rar_status = self.unrar_it(rk)
+                        except Exception as e:
+                            logger.warn('[RAR MANAGER] Error extracting rar: %s' % e)
+                            continue
+                        else:
+                            if rar_status == "success":
+                                logger.info('[RAR MANAGER] Successfully extracted rars.')
+                                for rs in rk['info']:
+                                    os.remove(os.path.join(self.path, rs['filename']))
+                                    logger.info('[RAR MANAGER] Removal of : ' + os.path.join(self.path, rs['filename']))
+                                #remove the crap in the directory that got logged earlier ( think its done later though )
+                                logger.info('[RAR MANAGER] Removal of start rar: ' + rk['start_rar'])
+                                os.remove(rk['start_rar'])
+                                status = 'success'
 
         if status == 'success':
             logger.info('Success!')
