@@ -149,12 +149,12 @@ class QueueR(object):
         self.defaultdir = self.configchk('general', 'defaultdir', str)
         self.torrentfile_dir = self.configchk('general', 'torrentfile_dir', str)
         self.torrentclient = self.configchk('general', 'torrentclient', str)
-        self.lcmdparallel = self.configchk('lcmd_parallel', 'lcmd_parallel', str)
-        self.lcmdsegments = self.configchk('lcmd_segments', 'lcmd_segments', str)
-        if self.lcmdsegments is None:
-            self.lcmdsegments = '6'
-        if self.lcmdparallel is None:
-            self.lcmdparallel = '2'
+        self.lcmdparallel = self.configchk('general', 'lcmd_parallel', int)
+        self.lcmdsegments = self.configchk('general', 'lcmd_segments', int)
+        if self.lcmdsegments is 0:
+            self.lcmdsegments = 6
+        if self.lcmdparallel is 0:
+            self.lcmdparallel = 2
         #defaultdir is the default download directory on your rtorrent client. This is used to determine if the download
         #should initiate a mirror vs a get (multiple file vs single vs directories)
         self.tvdir = self.configchk('label_directories', 'tvdir', str)
