@@ -755,7 +755,7 @@ class QueueR(object):
                         except:
                             logger.warn('[HARPOON] Unable to remove file from snatch queue directory [' + item['item'] + '.' + item['mode'] + ']. You should delete it manually to avoid re-downloading.')
 
-                    if lidarr_process['status'] is True:
+                    if lidarr_process is True:
                         logger.info('[LIDARR] Successfully post-processed : ' + snstat['name'])
                     else:
                         logger.info('[LIDARR] Unable to confirm successful post-processing - this could be due to running out of hdd-space, an error, or something else occuring to halt post-processing of the movie.')
