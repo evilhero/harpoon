@@ -1127,7 +1127,7 @@ class QueueR(object):
                             if filecontent:
                                 if 'data' in filecontent.keys():
                                     if 'downloadClient' in filecontent['data'].keys():
-                                        client = filecontent['downloadClient'].lower()
+                                        client = filecontent['data']['downloadClient'].lower()
                                 elif 'Source' in filecontent.keys():
                                     client = filecontent['Source'].lower()
                             hash = self.history_poll(f[:-5])
@@ -1224,7 +1224,6 @@ class QueueR(object):
                                         client = filecontent['Source'].lower()
                                     else:
                                         client = None
-                                logger.debug('Client: %s' % client)
                             #test here to make sure the file isn't being worked on currently & doesnt exist in queue already
                             dupchk = [x for x in CKQUEUE if x['hash'] == hashfile]
                             duplist = []
