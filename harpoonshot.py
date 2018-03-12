@@ -52,7 +52,7 @@ file_handler.setFormatter(file_formatter)
 logger.addHandler(file_handler)
 
 filecontent = None
-info = json.dumps(dict(os.environ), indent=4)
+
 try:
     mode = sys.argv[1]
     args = sys.argv[1:]
@@ -85,7 +85,7 @@ else:
         if '//' in inputfile:
             inputfile = re.sub('-', '//', inputfile).strip()
         if '/' in inputfile: # FreeBSD matching
-            inputfile = inputfile.replace('/', '-')
+            inputfile = inputfile.replace('-', '/')
         label = radarr_label
         filetype = '.file'
     elif mode == 'lidarr':
@@ -133,7 +133,7 @@ if os.path.exists(path):
         with open(filepath, 'w') as outfile:
             os.utime(filepath, None)
             if any([mode == 'sonarr', mode == 'radarr', mode == 'mylar', mode == 'lidarr']):
-                outfile.write(info)
+                outfile.write(json.dumps(dict(os.environ), indent=4))
             elif filecontent:
                 outfile.write(json.dumps(filecontent))
     except e as Exception:

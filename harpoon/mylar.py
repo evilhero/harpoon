@@ -34,14 +34,26 @@ class Mylar(object):
     def post_process(self):
        nzb_name = None
        try:
+           logger.debug('attempting to open: %s' % os.path.join(self.torrentfile_dir, self.mylar_label, self.snstat['hash'] + '.hash'))
            with open(os.path.join(self.torrentfile_dir, self.mylar_label, self.snstat['hash'] + '.hash')) as dfile:
                data = json.load(dfile)
-       except:
+       except Exception as e:
+           logger.error('[%s] not able to load .hash file.' % e)
            #for those that were done outside of Mylar or using the -s switch on the cli directly by hash
            nzb_name = 'Manual Run'
        else:
-           nzb_name = data['mylar_torrent_filename']
-           issueid = data['mylar_issueid']
+           logger.debug('loaded .hash successfully - extracting info.')
+           try:
+               nzb_name = data['mylar_release_name']
+           except:
+               #if mylar_release_name doesn't exist, fall back to the torrent_filename.
+               #mylar retry issue will not have a release_name
+               nzb_name = data['mylar_torrent_filename']
+
+           if data['mylar_release_pack'] is False:
+               issueid = data['mylar_issueid']
+           else:
+               issueid = None
            comicid = data['mylar_comicid']
 
        url = self.mylar_url + '/api'
@@ -56,18 +68,18 @@ class Mylar(object):
        payload = {'cmd':         'forceProcess',
                   'apikey':      self.mylar_apikey,
                   'nzb_name':    nzb_name,
-                  #'issueid':     issueid, 
-                  #'comicid':     comicid,
+                  'issueid':     issueid,
+                  'comicid':     comicid,
                   'nzb_folder':  newpath}
 
        logger.info('[MYLAR] Posting url: %s' % url)
        logger.info('[MYLAR] Posting to completed download handling now: %s' % payload)
 
        r = requests.post(url, params=payload, headers=self.mylar_headers)
-       data = r.json()
-       logger.info('content: %s' % data)
+       response = r.json()
+       logger.debug('content: %s' % response)
 
-       logger.info('[MYLAR] status_code: %s' % r.status_code)
+       logger.debug('[MYLAR] status_code: %s' % r.status_code)
        logger.info('[MYLAR] Successfully post-processed : ' + self.snstat['name'])
 
        return True
