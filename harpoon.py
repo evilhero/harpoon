@@ -380,576 +380,587 @@ class QueueR(object):
             else:
                 self.hash_reload = False
 
+            # Check for client type.  If no client set, assume rtorrent.
+
+            if 'client' not in item.keys():
+                item['client'] = 'rtorrent'
+
             #Sonarr stores torrent names without the extension which throws things off.
             #use the below code to reference Sonarr to poll the history and get the hash from the given torrentid
-            try:
-                if any([item['mode'] == 'file', item['mode'] == 'file-add']):
-                    logger.info('sending to rtorrent as file...')
-                    rt = rtorrent.RTorrent(file=item['item'], label=item['label'], partial=self.partial, conf=self.conf_location)
-                else:
-                    rt = rtorrent.RTorrent(hash=item['item'], label=item['label'], conf=self.conf_location)
-                snstat = rt.main()
-            except Exception as e:
-                logger.info('ERROR - %s' % e)
+            if item['client'] == 'sabnzbd':
+                logger.info('Dropping queued item pending sabnzbd support')
 
-            #import torrent.clients.deluge as delu
-            #dp = delu.TorrentClient()
-            #if not dp.connect():
-            #    logger.warn('Not connected to Deluge!')
-            #snstat = dp.get_torrent(torrent_hash)
-
-
-            logger.info('---')
-            logger.info(snstat)
-            logger.info('---')
-
-            if (snstat is None or not snstat['completed']) and self.partial is False:
-                if snstat is None:
-                    self.not_loaded +=1
-                    logger.warn('[Current attempt: ' + str(self.not_loaded) + '] Cannot locate torrent on client. Ignoring this result for up to 5 retries / 2 minutes')
-                    if self.not_loaded > 5:
-                        logger.warn('Unable to locate torrent on client. Ensure settings are correct and client is turned on.')
-                        self.not_loaded = 0
-                        continue
-
-                logger.info('Still downloading in client....let\'s try again in 30 seconds.')
-                time.sleep(30)
-                #we already popped the item out of the queue earlier, now we need to add it back in.
-                queue.put({'mode':  item['mode'],
-                           'item':  item['item'],
-                           'label': item['label']})
             else:
-                if self.exists is False:
-                    import shlex, subprocess
-                    logger.info('Torrent is completed and status is currently Snatched. Attempting to auto-retrieve.')
-                    tmp_script = os.path.join(DATADIR, 'snatcher', 'getlftp.sh')
-                    with open(tmp_script, 'r') as f:
-                        first_line = f.readline()
-
-                    if tmp_script.endswith('.sh'):
-                        shell_cmd = re.sub('#!', '', first_line)
-                        if shell_cmd == '' or shell_cmd is None:
-                            shell_cmd = '/bin/bash'
+                try:
+                    if any([item['mode'] == 'file', item['mode'] == 'file-add']):
+                        logger.info('sending to rtorrent as file...')
+                        rt = rtorrent.RTorrent(file=item['item'], label=item['label'], partial=self.partial, conf=self.conf_location)
                     else:
-                        shell_cmd = sys.executable
-
-                    curScriptName = shell_cmd + ' ' + str(tmp_script).decode("string_escape")
-                    if snstat['mirror'] is True:
-                        #downlocation = snstat['folder']
-                        logger.info('trying to convert : %s' % snstat['folder'])
-                        try:
-                            downlocation = snstat['folder'].encode('utf-8')
-                        except Exception as e:
-                            logger.info('utf-8 error: %s' % e)
-                    else:
-                        try:
-                            tmpfolder = snstat['folder'].encode('utf-8')
-                            tmpname = snstat['name'].encode('utf-8')
-                            logger.info('[UTF-8 SAFETY] tmpfolder, tmpname: %s' % os.path.join(tmpfolder, tmpname))
-                        except:
-                            pass
-
-                        logger.info('sntat[files]: %s' % snstat['files'][0])
-                        #if it's one file in a sub-directory vs one-file in the root...
-                        #if os.path.join(snstat['folder'], snstat['name']) != snstat['files'][0]:
-                        if os.path.join(tmpfolder, tmpname) != snstat['files'][0]:
-                            downlocation = snstat['files'][0].encode('utf-8')
-                        else:
-                            #downlocation = os.path.join(snstat['folder'], snstat['files'][0])
-                            downlocation = os.path.join(tmpfolder, snstat['files'][0].encode('utf-8'))
-
-                    labelit = None
-                    if self.applylabel == 'true':
-                        if any([snstat['label'] != 'None', snstat['label'] is not None]):
-                            labelit = snstat['label']
-
-                    if snstat['multiple'] is None:
-                        multiplebox = '0'
-                    else:
-                        multiplebox = snstat['multiple']
-
-                    os.environ['conf_location'] = self.conf_location
-                    os.environ['harpoon_location'] = re.sub("'", "\\'",downlocation)
-                    os.environ['harpoon_label'] = labelit
-                    os.environ['harpoon_applylabel'] = self.applylabel
-                    os.environ['harpoon_defaultdir'] = self.defaultdir
-                    os.environ['harpoon_multiplebox'] = multiplebox
-
-                    if any([downlocation.endswith(ext) for ext in self.extensions]):
-                        combined_lcmd = 'pget -n %s \"%s\"' % (self.lcmdsegments, downlocation)
-                    else:
-                        combined_lcmd = 'mirror -P %s --use-pget-n=%s \"%s\"' % (self.lcmdparallel, self.lcmdsegments, downlocation)
-
-                    os.environ['harpoon_lcmd'] = combined_lcmd
-
-                    if any([multiplebox == '1', multiplebox == '0']):
-                        os.environ['harpoon_pp_host'] = self.pp_host
-                        os.environ['harpoon_pp_sshport'] = str(self.pp_sshport)
-                        os.environ['harpoon_pp_user'] = self.pp_user
-                        if self.pp_keyfile is not None:
-                            os.environ['harpoon_pp_keyfile'] = self.pp_keyfile
-                        else:
-                            os.environ['harpoon_pp_keyfile'] = ''
-                        if self.pp_passwd is not None:
-                            os.environ['harpoon_pp_passwd'] = self.pp_passwd
-                        else:
-                            os.environ['harpoon_pp_passwd'] = ''
-                    else:
-                        os.environ['harpoon_pp_host'] = self.pp_host2
-                        os.environ['harpoon_pp_sshport'] = str(self.pp_sshport2)
-                        os.environ['harpoon_pp_user'] = self.pp_user2
-                        if self.pp_keyfile2 is not None:
-                            os.environ['harpoon_pp_keyfile'] = self.pp_keyfile2
-                        else:
-                            os.environ['harpoon_pp_keyfile'] = ''
-                        if self.pp_passwd2 is not None:
-                            os.environ['harpoon_pp_passwd'] = self.pp_passwd2
-                        else:
-                            os.environ['harpoon_pp_passwd'] = ''
-
-                    logger.info('Downlocation: %s' % re.sub("'", "\\'", downlocation))
-                    logger.info('Label: %s' % labelit)
-                    logger.info('Multiple Seedbox: %s' % multiplebox)
-
-                    script_cmd = shlex.split(curScriptName)# + [downlocation, labelit, multiplebox]
-                    logger.info(u"Executing command " + str(script_cmd))
-
-                    try:
-                        p = subprocess.Popen(script_cmd, env=dict(os.environ), stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-                        output, error = p.communicate()
-                        if error:
-                            logger.warn('[ERROR] %s' % error)
-                        if output:
-                            logger.info('[OUTPUT] %s'% output)
-                    except Exception as e:
-                        logger.warn('Exception occured: %s' % e)
-                        continue
-                    else:
-                        snatch_status = 'COMPLETED'
-
-                if all([snstat['label'] == self.sonarr_label, self.tv_choice == 'sonarr']):  #probably should be sonarr_label instead of 'tv'
-
-                    #unrar it, delete the .rar's and post-process against the items remaining in the given directory.
-                    cr = unrar.UnRAR(os.path.join(self.defaultdir, self.sonarr_label ,snstat['name']))
-                    chkrelease = cr.main()
-                    if all([len(chkrelease) == 0, len(snstat['files']) > 1, not os.path.isdir(os.path.join(self.defaultdir, self.sonarr_label, snstat['name']))]):
-                        #if this hits, then the retrieval from the seedbox failed probably due to another script moving into a finished/completed directory (ie. race-condition)
-                        logger.warn('[SONARR] Problem with snatched files - nothing seems to have downloaded. Retrying the snatch again in case the file was moved from a download location to a completed location on the client.')
-                        time.sleep(10)
-                        self.hash_reload = True
-                        continue
-
-
-                    logger.info('[SONARR] Placing call to update Sonarr')
-                    sonarr_info = {'sonarr_url':      self.sonarr_url,
-                                   'sonarr_headers':  self.sonarr_headers,
-                                   'applylabel':      self.applylabel,
-                                   'defaultdir':      self.defaultdir,
-                                   'snstat':          snstat}
-
-                    ss = sonarr.Sonarr(sonarr_info)
-                    sonarr_process = ss.post_process()
-
-                    if not any([item['mode'] == 'hash-add', item['mode'] == 'file-add']):
-                        logger.info('[HARPOON] Removing completed file from queue directory.')
-                        try:
-                            os.remove(os.path.join(self.torrentfile_dir, self.sonarr_label, item['item'] + '.' + item['mode']))
-                            logger.info('[HARPOON] File removed')
-                        except:
-                            logger.warn('[HARPOON] Unable to remove file from snatch queue directory [' + item['item'] + '.' + item['mode'] + ']. You should delete it manually to avoid re-downloading')
-
-                    if sonarr_process is True:
-                        logger.info('[SONARR] Successfully post-processed : ' + snstat['name'])
-                    else:
-                        logger.info('[SONARR] Unable to confirm successful post-processing - this could be due to running out of hdd-space, an error, or something else occuring to halt post-processing of the episode.')
-                        logger.info('[SONARR] HASH: %s / label: %s' % (snstat['hash'], snstat['label']))
-
-                    CKQUEUE.append({'hash':   snstat['hash'],
-                                    'stage':  'completed'})
-
-                    if all([self.plex_update is True, sonarr_process is True]):
-                        #sonarr_file = os.path.join(self.torrentfile_dir, self.sonarr_label, str(snstat['hash']) + '.hash')
-                        #with open(filepath, 'w') as outfile:
-                        #    json_sonarr = json.load(sonarr_file)
-                        #root_path = json_sonarr['path']
-
-                        logger.info('[PLEX-UPDATE] Now submitting update library request to plex')
-                        plexit = plex.Plex({'plex_update':     self.plex_update,
-                                            'plex_host_ip':    self.plex_host_ip,
-                                            'plex_host_port':  str(self.plex_host_port),
-                                            'plex_token':      self.plex_token,
-                                            'plex_login':      self.plex_login,
-                                            'plex_password':   self.plex_password,
-                                            'plex_label':      snstat['label'],
-                                            'root_path':       None,})
-
-                        pl = plexit.connect()
-
-                        if pl['status'] is True:
-                            logger.info('[HARPOON-PLEX-UPDATE] Completed (library is currently being refreshed)')
-                        else:
-                            logger.warn('[HARPOON-PLEX-UPDATE] Failure - library could NOT be refreshed')
-
-                elif all([snstat['label'] == self.sickrage_label, self.tv_choice == 'sickrage']):
-                    #unrar it, delete the .rar's and post-process against the items remaining in the given directory.
-                    cr = unrar.UnRAR(os.path.join(self.defaultdir, self.sickrage_label ,snstat['name']))
-                    chkrelease = cr.main()
-                    if all([len(chkrelease) == 0, len(snstat['files']) > 1, not os.path.isdir(os.path.join(self.defaultdir, self.sickrage_label, snstat['name']))]):
-                        #if this hits, then the retrieval from the seedbox failed probably due to another script moving into a finished/completed directory (ie. race-condition)
-                        logger.warn('[SICKRAGE] Problem with snatched files - nothing seems to have downloaded. Retrying the snatch again in case the file was moved from a download location to a completed location on the client.')
-                        time.sleep(10)
-                        self.hash_reload = True
-                        continue
-
-                    logger.info('[SICKRAGE] Placing call to update Sickrage')
-                    sickrage_info = {'sickrage_conf': self.sickrage_conf,
-                                     'applylabel':    self.applylabel,
-                                     'defaultdir':    self.defaultdir,
-                                     'snstat':        snstat}
-                    sr = sickrage.Sickrage(sickrage_info)
-                    sickrage_process = sr.post_process()
-
-                    if not any([item['mode'] == 'hash-add', item['mode'] == 'file-add']):
-                        logger.info('[HARPOON] Removing completed file from queue directory.')
-                        try:
-                            os.remove(os.path.join(self.torrentfile_dir, self.sickrage_label, item['item'] + '.' + item['mode']))
-                            logger.info('[HARPOON] File removed')
-                        except:
-                            logger.warn('[HARPOON] Unable to remove file from snatch queue directory [' + item['item'] + '.' + item['mode'] + ']. You should delete it manually to avoid re-downloading')
-
-                    if sickrage_process is True:
-                        logger.info('[SICKRAGE] Successfully post-processed : ' + snstat['name'])
-                    else:
-                        logger.info('[SICKRAGE] Unable to confirm successful post-processing - this could be due to running out of hdd-space, an error, or something else occuring to halt post-processing of the episode.')
-                        logger.info('[SICKRAGE] HASH: %s / label: %s' % (snstat['hash'], snstat['label']))
-
-                    CKQUEUE.append({'hash':   snstat['hash'],
-                                    'stage':  'completed'})
-
-                    if all([self.plex_update is True, sickrage_process is True]):
-
-                        logger.info('[PLEX-UPDATE] Now submitting update library request to plex')
-                        plexit = plex.Plex({'plex_update':     self.plex_update,
-                                            'plex_host_ip':    self.plex_host_ip,
-                                            'plex_host_port':  self.plex_host_port,
-                                            'plex_token':      self.plex_token,
-                                            'plex_login':      self.plex_login,
-                                            'plex_password':   self.plex_password,
-                                            'plex_label':      snstat['label'],
-                                            'root_path':       None,})
-
-                        pl = plexit.connect()
-
-                        if pl['status'] is True:
-                            logger.info('[HARPOON-PLEX-UPDATE] Completed (library is currently being refreshed)')
-                        else:
-                            logger.warn('[HARPOON-PLEX-UPDATE] Failure - library could NOT be refreshed')
-
-                elif snstat['label'] == self.radarr_label:
-                    #check list of files for rar's here...
-                    cr = unrar.UnRAR(os.path.join(self.defaultdir, self.radarr_label ,snstat['name']))
-                    chkrelease = cr.main()
-                    if all([len(chkrelease) == 0, len(snstat['files']) > 1, not os.path.isdir(os.path.join(self.defaultdir, self.radarr_label, snstat['name']))]):
-                        #if this hits, then the retrieval from the seedbox failed probably due to another script moving into a finished/completed directory (ie. race-condition)
-                        logger.warn('[RADARR] Problem with snatched files - nothing seems to have downloaded. Retrying the snatch again in case the file was moved from a download location to a completed location on the client.')
-                        time.sleep(60)
-                        self.hash_reload = True
-                        continue
-
-                    logger.info('[RADARR] UNRAR - %s' % chkrelease)
-
-                    logger.info('[RADARR] Placing call to update Radarr')
-
-                    radarr_info = {'radarr_url':                self.radarr_url,
-                                   'radarr_label':              self.radarr_label,
-                                   'radarr_headers':            self.radarr_headers,
-                                   'applylabel':                self.applylabel,
-                                   'defaultdir':                self.defaultdir,
-                                   'radarr_rootdir':            self.radarr_rootdir,
-                                   'torrentfile_dir':           self.torrentfile_dir,
-                                   'keep_original_foldernames': self.radarr_keep_original_foldernames,
-                                   'dir_hd_movies':             self.dir_hd_movies,
-                                   'dir_sd_movies':             self.dir_sd_movies,
-                                   'dir_web_movies':            self.dir_web_movies,
-                                   'radarr_id':                 None,
-                                   'radarr_movie':              None,
-                                   'snstat':                    snstat}
-
-                    rr = radarr.Radarr(radarr_info)
-                    radarr_process = rr.post_process()
-
-                    if not any([item['mode'] == 'hash-add', item['mode'] == 'file-add']):
-                        logger.info('[HARPOON] Removing completed file from queue directory.')
-                        try:
-                            os.remove(os.path.join(self.torrentfile_dir, self.radarr_label, item['item'] + '.' + item['mode']))
-                            logger.info('[HARPOON] File removed')
-                        except:
-                            logger.warn('[HARPOON] Unable to remove file from snatch queue directory [' + item['item'] + '.' + item['mode'] + ']. You should delete it manually to avoid re-downloading.')
-
-                    if self.radarr_keep_original_foldernames is True:
-                        logger.info('[HARPOON] Keep Original FolderNames are enabled for Radarr. Altering paths ...')
-                        radarr_info['radarr_id'] = radarr_process['radarr_id']
-                        radarr_info['radarr_movie'] = radarr_process['radarr_movie']
-
-                        rof = radarr.Radarr(radarr_info)
-                        radarr_keep_og = rof.og_folders()
-
-                    if radarr_process['status'] is True:
-                        logger.info('[RADARR] Successfully post-processed : ' + snstat['name'])
-                    else:
-                        logger.info('[RADARR] Unable to confirm successful post-processing - this could be due to running out of hdd-space, an error, or something else occuring to halt post-processing of the movie.')
-                        logger.info('[RADARR] HASH: %s / label: %s' % (snstat['hash'], snstat['label']))
-
-                    logger.info('[RADARR] Successfully completed post-processing of ' + snstat['name'])
-                    CKQUEUE.append({'hash':   snstat['hash'],
-                                    'stage':  'completed'})
-
-                    if all([self.plex_update is True, radarr_process['status'] is True]):
-                        logger.info('[PLEX-UPDATE] Now submitting update library request to plex')
-                        plexit = plex.Plex({'plex_update':     self.plex_update,
-                                            'plex_host_ip':    self.plex_host_ip,
-                                            'plex_host_port':  self.plex_host_port,
-                                            'plex_token':      self.plex_token,
-                                            'plex_login':      self.plex_login,
-                                            'plex_password':   self.plex_password,
-                                            'plex_label':      snstat['label'],
-                                            'root_path':       radarr_process['radarr_root']})
-                        pl = plexit.connect()
-
-                        if pl['status'] is True:
-                            logger.info('[HARPOON-PLEX-UPDATE] Completed (library is currently being refreshed)')
-                        else:
-                            logger.warn('[HARPOON-PLEX-UPDATE] Failure - library could NOT be refreshed')
-
-                elif snstat['label'] == self.lidarr_label:
-                    #check list of files for rar's here...
-                    cr = unrar.UnRAR(os.path.join(self.defaultdir, self.lidarr_label ,snstat['name']))
-                    chkrelease = cr.main()
-                    if all([len(chkrelease) == 0, len(snstat['files']) > 1, not os.path.isdir(os.path.join(self.defaultdir, self.lidarr_label, snstat['name']))]):
-                        #if this hits, then the retrieval from the seedbox failed probably due to another script moving into a finished/completed directory (ie. race-condition)
-                        logger.warn('[LIDARR] Problem with snatched files - nothing seems to have downloaded. Retrying the snatch again in case the file was moved from a download location to a completed location on the client.')
-                        time.sleep(60)
-                        self.hash_reload = True
-                        continue
-
-                    logger.info('[LIDARR] UNRAR - %s' % chkrelease)
-
-                    logger.info('[LIDARR] Placing call to update Lidarr')
-
-                    lidarr_info = {'lidarr_url':                self.lidarr_url,
-                                   'lidarr_label':              self.lidarr_label,
-                                   'lidarr_headers':            self.lidarr_headers,
-                                   'applylabel':                self.applylabel,
-                                   'defaultdir':                self.defaultdir,
-                                   'torrentfile_dir':           self.torrentfile_dir,
-                                   'snstat':                    snstat}
-
-                    lr = lidarr.Lidarr(lidarr_info)
-                    lidarr_process = lr.post_process()
-
-                    if not any([item['mode'] == 'hash-add', item['mode'] == 'file-add']):
-                        logger.info('[HARPOON] Removing completed file from queue directory.')
-                        try:
-                            os.remove(os.path.join(self.torrentfile_dir, self.lidarr_label, item['item'] + '.' + item['mode']))
-                            logger.info('[HARPOON] File removed')
-                        except:
-                            logger.warn('[HARPOON] Unable to remove file from snatch queue directory [' + item['item'] + '.' + item['mode'] + ']. You should delete it manually to avoid re-downloading.')
-
-                    if lidarr_process is True:
-                        logger.info('[LIDARR] Successfully post-processed : ' + snstat['name'])
-                    else:
-                        logger.info('[LIDARR] Unable to confirm successful post-processing - this could be due to running out of hdd-space, an error, or something else occuring to halt post-processing of the movie.')
-                        logger.info('[LIDARR] HASH: %s / label: %s' % (snstat['hash'], snstat['label']))
-
-                    logger.info('[LIDARR] Successfully completed post-processing of ' + snstat['name'])
-                    CKQUEUE.append({'hash':   snstat['hash'],
-                                    'stage':  'completed'})
-
-                    if all([self.plex_update is True, lidarr_process['status'] is True]):
-                        logger.info('[PLEX-UPDATE] Now submitting update library request to plex')
-                        plexit = plex.Plex({'plex_update':     self.plex_update,
-                                            'plex_host_ip':    self.plex_host_ip,
-                                            'plex_host_port':  self.plex_host_port,
-                                            'plex_token':      self.plex_token,
-                                            'plex_login':      self.plex_login,
-                                            'plex_password':   self.plex_password,
-                                            'plex_label':      snstat['label']})
-                        pl = plexit.connect()
-
-                        if pl['status'] is True:
-                            logger.info('[HARPOON-PLEX-UPDATE] Completed (library is currently being refreshed)')
-                        else:
-                            logger.warn('[HARPOON-PLEX-UPDATE] Failure - library could NOT be refreshed')
-
-                elif snstat['label'] == self.lazylibrarian_label:
-                    #unrar it, delete the .rar's and post-process against the items remaining in the given directory.
-                    cr = unrar.UnRAR(os.path.join(self.defaultdir, self.lazylibrarian_label ,snstat['name']))
-                    chkrelease = cr.main()
-                    if all([len(chkrelease) == 0, len(snstat['files']) > 1, not os.path.isdir(os.path.join(self.defaultdir, self.lazylibrarian_label, snstat['name']))]):
-                        #if this hits, then the retrieval from the seedbox failed probably due to another script moving into a finished/completed directory (ie. race-condition)
-                        logger.warn('[LAZYLIBRARIAN] Problem with snatched files - nothing seems to have downloaded. Retrying the snatch again in case the file was moved from a download location to a completed location on the client.')
-                        time.sleep(10)
-                        self.hash_reload = True
-                        continue
-
-                    logger.info('[LAZYLIBRARIAN] Placing call to update LazyLibrarian')
-                    ll_file = os.path.join(self.torrentfile_dir, self.lazylibrarian_label, item['item'] + '.' + item['mode'])
-                    if os.path.isfile(ll_file):
-                        ll_filedata = json.load(open(ll_file))
-                        logger.info('[LAZYLIBRARIAN] File data loaded.')
-                    else:
-                        ll_filedata = None
-                        logger.info('[LAZYLIBRARIAN] File data NOT loaded.')
-                    ll_info = {'lazylibrarian_headers': self.lazylibrarian_headers,
-                                          'lazylibrarian_url': self.lazylibrarian_url,
-                                          'lazylibrarian_label': self.lazylibrarian_label,
-                                          'lazylibrarian_apikey': self.lazylibrarian_apikey,
-                                          'lazylibrarian_filedata': ll_filedata,
-                                          'applylabel':    self.applylabel,
-                                          'defaultdir':    self.defaultdir,
-                                          'snstat':        snstat}
-                    ll = lazylibrarian.LazyLibrarian(ll_info)
-                    logger.info('[LAZYLIBRARIAN] Processing')
-                    lazylibrarian_process = ll.post_process()
-
-                    if not any([item['mode'] == 'hash-add', item['mode'] == 'file-add']):
-                        logger.info('[HARPOON] Removing completed file from queue directory.')
-                        try:
-                            os.remove(os.path.join(self.torrentfile_dir, self.lazylibrarian_label, item['item'] + '.' + item['mode']))
-                            logger.info('[HARPOON] File removed')
-                        except:
-                            logger.warn('[HARPOON] Unable to remove file from snatch queue directory [' + item['item'] + '.' + item['mode'] + ']. You should delete it manually to avoid re-downloading')
-
-                    if lazylibrarian_process is True:
-                        logger.info('[LAZYLIBRARIAN] Successfully post-processed : ' + snstat['name'])
-                    else:
-                        logger.info('[LAZYLIBRARIAN] Unable to confirm successful post-processing - this could be due to running out of hdd-space, an error, or something else occuring to halt post-processing of the episode.')
-                        logger.info('[LAZYLIBRARIAN] HASH: %s / label: %s' % (snstat['hash'], snstat['label']))
-
-                    CKQUEUE.append({'hash':   snstat['hash'],
-                                    'stage':  'completed'})
-
-                    if all([self.plex_update is True, lazylibrarian_process is True]):
-
-                        logger.info('[PLEX-UPDATE] Now submitting update library request to plex')
-                        plexit = plex.Plex({'plex_update':     self.plex_update,
-                                            'plex_host_ip':    self.plex_host_ip,
-                                            'plex_host_port':  self.plex_host_port,
-                                            'plex_token':      self.plex_token,
-                                            'plex_login':      self.plex_login,
-                                            'plex_password':   self.plex_password,
-                                            'plex_label':      snstat['label'],
-                                            'root_path':       None,})
-
-                        pl = plexit.connect()
-
-                        if pl['status'] is True:
-                            logger.info('[HARPOON-PLEX-UPDATE] Completed (library is currently being refreshed)')
-                        else:
-                            logger.warn('[HARPOON-PLEX-UPDATE] Failure - library could NOT be refreshed')
-
-
-                elif snstat['label'] == 'music':
-                    logger.info('[MUSIC] Successfully auto-snatched!')
-                    if not any([item['mode'] == 'hash-add', item['mode'] == 'file-add']):
-                        logger.info('[MUSIC] Removing completed file from queue directory.')
-                        try:
-                            os.remove(os.path.join(self.torrentfile_dir, snstat['label'], item['item'] + '.' + item['mode']))
-                            logger.info('[MUSIC] File removed from system so no longer queuable')
-                        except:
-                            try:
-                                os.remove(os.path.join(self.torrentfile_dir, snstat['label'], snstat['hash'] + '.hash'))
-                                logger.info('[MUSIC] File removed by hash from system so no longer queuable')
-                            except:
-                                logger.warn('[MUSIC] Unable to remove file from snatch queue directory [' + item['item'] + '.' + item['mode'] + ']. You should delete it manually to avoid re-downloading.')
-                    else:
-                        logger.info('[MUSIC] Completed status returned for manual post-processing of file.')
-
-                    CKQUEUE.append({'hash':   snstat['hash'],
-                                    'stage':  'completed'})
-
-                    logger.info('Auto-Snatch of torrent completed.')
-
-                elif snstat['label'] == 'xxx':
-                    logger.info('[XXX] Successfully auto-snatched!')
-                    if not any([item['mode'] == 'hash-add', item['mode'] == 'file-add']):
-                        logger.info('[XXX] Removing completed file from queue directory.')
-                        try:
-                            os.remove(os.path.join(self.torrentfile_dir, snstat['label'], item['item'] + '.' + item['mode']))
-                            logger.info('[XXX] File removed')
-                        except:
-                            try:
-                                os.remove(os.path.join(self.torrentfile_dir, snstat['label'], snstat['hash'] + '.hash'))
-                                logger.info('[MUSIC] XXX removed by hash from system so no longer queuable')
-                            except:
-                                logger.warn('[XXX] Unable to remove file from snatch queue directory [' + item['item'] + '.' + item['mode'] + ']. You should delete it manually to avoid re-downloading.')
-                    else:
-                        logger.info('[XXX] Completed status returned for manual post-processing of file.')
-
-                    CKQUEUE.append({'hash':   snstat['hash'],
-                                    'stage':  'completed'})
-
-                    logger.info('Auto-Snatch of torrent completed.')
-
-                elif snstat['label'] == self.mylar_label:
-
-                    logger.info('[MYLAR] Placing call to update Mylar')
-                    mylar_info = {'mylar_url':        self.mylar_url,
-                                  'mylar_headers':    self.mylar_headers,
-                                  'mylar_apikey':     self.mylar_apikey,
-                                  'mylar_label':      self.mylar_label,
-                                  'applylabel':       self.applylabel,
-                                  'torrentfile_dir':  self.torrentfile_dir,
-                                  'defaultdir':       self.defaultdir,
-                                  'snstat':           snstat}
-
-                    my = mylar.Mylar(mylar_info)
-                    mylar_process = my.post_process()
-
-                    logger.info('[MYLAR] Successfully auto-snatched!')
-                    if not any([item['mode'] == 'hash-add', item['mode'] == 'file-add']):
-                        logger.info('[MYLAR] Removing completed file from queue directory.')
-                        try:
-                            os.remove(os.path.join(self.torrentfile_dir, snstat['label'], item['item'] + '.' + item['mode']))
-                            logger.info('[MYLAR] File removed')
-                        except:
-                            try:
-                                os.remove(os.path.join(self.torrentfile_dir, snstat['label'], snstat['hash'] + '.hash'))
-                                logger.info('[MYLAR] File removed by hash from system so no longer queuable')
-                            except:
-                                logger.warn('[MYLAR] Unable to remove file from snatch queue directory [' + item['item'] + '.' + item['mode'] + ']. You should delete it manually to avoid re-downloading.')
-                    else:
-                        logger.info('[MYLAR] Completed status returned for manual post-processing of file.')
-
-                    CKQUEUE.append({'hash':   snstat['hash'],
-                                    'stage':  'completed'})
-
-                    logger.info('Auto-Snatch of torrent completed.')
-
+                        rt = rtorrent.RTorrent(hash=item['item'], label=item['label'], conf=self.conf_location)
+                    snstat = rt.main()
+                except Exception as e:
+                    logger.info('ERROR - %s' % e)
+                    snstat = None
+
+                #import torrent.clients.deluge as delu
+                #dp = delu.TorrentClient()
+                #if not dp.connect():
+                #    logger.warn('Not connected to Deluge!')
+                #snstat = dp.get_torrent(torrent_hash)
+
+
+                logger.info('---')
+                logger.info(snstat)
+                logger.info('---')
+
+                if (snstat is None or not snstat['completed']) and self.partial is False:
+                    if snstat is None:
+                        self.not_loaded +=1
+                        logger.warn('[Current attempt: ' + str(self.not_loaded) + '] Cannot locate torrent on client. Ignoring this result for up to 5 retries / 2 minutes')
+                        if self.not_loaded > 5:
+                            logger.warn('Unable to locate torrent on client. Ensure settings are correct and client is turned on.')
+                            self.not_loaded = 0
+                            continue
+
+                    logger.info('Still downloading in client....let\'s try again in 30 seconds.')
+                    time.sleep(30)
+                    #we already popped the item out of the queue earlier, now we need to add it back in.
+                    queue.put({'mode':  item['mode'],
+                               'item':  item['item'],
+                               'label': item['label'],
+                               'client': item['client']})
                 else:
-                    logger.info('Successfully auto-snatched!')
-                    if not any([item['mode'] == 'hash-add', item['mode'] == 'file-add']):
-                        logger.info('Removing completed file from queue directory.')
-                        try:
-                            os.remove(os.path.join(self.torrentfile_dir, snstat['label'], item['item'] + '.' + item['mode']))
-                            logger.info('File removed')
-                        except:
+                    if self.exists is False:
+                        import shlex, subprocess
+                        logger.info('Torrent is completed and status is currently Snatched. Attempting to auto-retrieve.')
+                        tmp_script = os.path.join(DATADIR, 'snatcher', 'getlftp.sh')
+                        with open(tmp_script, 'r') as f:
+                            first_line = f.readline()
+
+                        if tmp_script.endswith('.sh'):
+                            shell_cmd = re.sub('#!', '', first_line)
+                            if shell_cmd == '' or shell_cmd is None:
+                                shell_cmd = '/bin/bash'
+                        else:
+                            shell_cmd = sys.executable
+
+                        curScriptName = shell_cmd + ' ' + str(tmp_script).decode("string_escape")
+                        if snstat['mirror'] is True:
+                            #downlocation = snstat['folder']
+                            logger.info('trying to convert : %s' % snstat['folder'])
                             try:
-                                os.remove(os.path.join(self.torrentfile_dir, snstat['label'], snstat['hash'] + '.hash'))
-                                logger.info('File removed by hash from system so no longer queuable')
+                                downlocation = snstat['folder'].encode('utf-8')
+                            except Exception as e:
+                                logger.info('utf-8 error: %s' % e)
+                        else:
+                            try:
+                                tmpfolder = snstat['folder'].encode('utf-8')
+                                tmpname = snstat['name'].encode('utf-8')
+                                logger.info('[UTF-8 SAFETY] tmpfolder, tmpname: %s' % os.path.join(tmpfolder, tmpname))
                             except:
-                                logger.warn('Unable to remove file from snatch queue directory [' + item['item'] + '.' + item['mode'] + ']. You should delete it manually to avoid re-downloading.')
+                                pass
+
+                            logger.info('sntat[files]: %s' % snstat['files'][0])
+                            #if it's one file in a sub-directory vs one-file in the root...
+                            #if os.path.join(snstat['folder'], snstat['name']) != snstat['files'][0]:
+                            if os.path.join(tmpfolder, tmpname) != snstat['files'][0]:
+                                downlocation = snstat['files'][0].encode('utf-8')
+                            else:
+                                #downlocation = os.path.join(snstat['folder'], snstat['files'][0])
+                                downlocation = os.path.join(tmpfolder, snstat['files'][0].encode('utf-8'))
+
+                        labelit = None
+                        if self.applylabel == 'true':
+                            if any([snstat['label'] != 'None', snstat['label'] is not None]):
+                                labelit = snstat['label']
+
+                        if snstat['multiple'] is None:
+                            multiplebox = '0'
+                        else:
+                            multiplebox = snstat['multiple']
+
+                        os.environ['conf_location'] = self.conf_location
+                        os.environ['harpoon_location'] = re.sub("'", "\\'",downlocation)
+                        os.environ['harpoon_label'] = labelit
+                        os.environ['harpoon_applylabel'] = self.applylabel
+                        os.environ['harpoon_defaultdir'] = self.defaultdir
+                        os.environ['harpoon_multiplebox'] = multiplebox
+
+                        if any([downlocation.endswith(ext) for ext in self.extensions]):
+                            combined_lcmd = 'pget -n %s \"%s\"' % (self.lcmdsegments, downlocation)
+                        else:
+                            combined_lcmd = 'mirror -P %s --use-pget-n=%s \"%s\"' % (self.lcmdparallel, self.lcmdsegments, downlocation)
+
+                        os.environ['harpoon_lcmd'] = combined_lcmd
+
+                        if any([multiplebox == '1', multiplebox == '0']):
+                            os.environ['harpoon_pp_host'] = self.pp_host
+                            os.environ['harpoon_pp_sshport'] = str(self.pp_sshport)
+                            os.environ['harpoon_pp_user'] = self.pp_user
+                            if self.pp_keyfile is not None:
+                                os.environ['harpoon_pp_keyfile'] = self.pp_keyfile
+                            else:
+                                os.environ['harpoon_pp_keyfile'] = ''
+                            if self.pp_passwd is not None:
+                                os.environ['harpoon_pp_passwd'] = self.pp_passwd
+                            else:
+                                os.environ['harpoon_pp_passwd'] = ''
+                        else:
+                            os.environ['harpoon_pp_host'] = self.pp_host2
+                            os.environ['harpoon_pp_sshport'] = str(self.pp_sshport2)
+                            os.environ['harpoon_pp_user'] = self.pp_user2
+                            if self.pp_keyfile2 is not None:
+                                os.environ['harpoon_pp_keyfile'] = self.pp_keyfile2
+                            else:
+                                os.environ['harpoon_pp_keyfile'] = ''
+                            if self.pp_passwd2 is not None:
+                                os.environ['harpoon_pp_passwd'] = self.pp_passwd2
+                            else:
+                                os.environ['harpoon_pp_passwd'] = ''
+
+                        logger.info('Downlocation: %s' % re.sub("'", "\\'", downlocation))
+                        logger.info('Label: %s' % labelit)
+                        logger.info('Multiple Seedbox: %s' % multiplebox)
+
+                        script_cmd = shlex.split(curScriptName)# + [downlocation, labelit, multiplebox]
+                        logger.info(u"Executing command " + str(script_cmd))
+
+                        try:
+                            p = subprocess.Popen(script_cmd, env=dict(os.environ), stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+                            output, error = p.communicate()
+                            if error:
+                                logger.warn('[ERROR] %s' % error)
+                            if output:
+                                logger.info('[OUTPUT] %s'% output)
+                        except Exception as e:
+                            logger.warn('Exception occured: %s' % e)
+                            continue
+                        else:
+                            snatch_status = 'COMPLETED'
+
+                    if all([snstat['label'] == self.sonarr_label, self.tv_choice == 'sonarr']):  #probably should be sonarr_label instead of 'tv'
+
+                        #unrar it, delete the .rar's and post-process against the items remaining in the given directory.
+                        cr = unrar.UnRAR(os.path.join(self.defaultdir, self.sonarr_label ,snstat['name']))
+                        chkrelease = cr.main()
+                        if all([len(chkrelease) == 0, len(snstat['files']) > 1, not os.path.isdir(os.path.join(self.defaultdir, self.sonarr_label, snstat['name']))]):
+                            #if this hits, then the retrieval from the seedbox failed probably due to another script moving into a finished/completed directory (ie. race-condition)
+                            logger.warn('[SONARR] Problem with snatched files - nothing seems to have downloaded. Retrying the snatch again in case the file was moved from a download location to a completed location on the client.')
+                            time.sleep(10)
+                            self.hash_reload = True
+                            continue
+
+
+                        logger.info('[SONARR] Placing call to update Sonarr')
+                        sonarr_info = {'sonarr_url':      self.sonarr_url,
+                                       'sonarr_headers':  self.sonarr_headers,
+                                       'applylabel':      self.applylabel,
+                                       'defaultdir':      self.defaultdir,
+                                       'snstat':          snstat}
+
+                        ss = sonarr.Sonarr(sonarr_info)
+                        sonarr_process = ss.post_process()
+
+                        if not any([item['mode'] == 'hash-add', item['mode'] == 'file-add']):
+                            logger.info('[HARPOON] Removing completed file from queue directory.')
+                            try:
+                                os.remove(os.path.join(self.torrentfile_dir, self.sonarr_label, item['item'] + '.' + item['mode']))
+                                logger.info('[HARPOON] File removed')
+                            except:
+                                logger.warn('[HARPOON] Unable to remove file from snatch queue directory [' + item['item'] + '.' + item['mode'] + ']. You should delete it manually to avoid re-downloading')
+
+                        if sonarr_process is True:
+                            logger.info('[SONARR] Successfully post-processed : ' + snstat['name'])
+                        else:
+                            logger.info('[SONARR] Unable to confirm successful post-processing - this could be due to running out of hdd-space, an error, or something else occuring to halt post-processing of the episode.')
+                            logger.info('[SONARR] HASH: %s / label: %s' % (snstat['hash'], snstat['label']))
+
+                        CKQUEUE.append({'hash':   snstat['hash'],
+                                        'stage':  'completed'})
+
+                        if all([self.plex_update is True, sonarr_process is True]):
+                            #sonarr_file = os.path.join(self.torrentfile_dir, self.sonarr_label, str(snstat['hash']) + '.hash')
+                            #with open(filepath, 'w') as outfile:
+                            #    json_sonarr = json.load(sonarr_file)
+                            #root_path = json_sonarr['path']
+
+                            logger.info('[PLEX-UPDATE] Now submitting update library request to plex')
+                            plexit = plex.Plex({'plex_update':     self.plex_update,
+                                                'plex_host_ip':    self.plex_host_ip,
+                                                'plex_host_port':  str(self.plex_host_port),
+                                                'plex_token':      self.plex_token,
+                                                'plex_login':      self.plex_login,
+                                                'plex_password':   self.plex_password,
+                                                'plex_label':      snstat['label'],
+                                                'root_path':       None,})
+
+                            pl = plexit.connect()
+
+                            if pl['status'] is True:
+                                logger.info('[HARPOON-PLEX-UPDATE] Completed (library is currently being refreshed)')
+                            else:
+                                logger.warn('[HARPOON-PLEX-UPDATE] Failure - library could NOT be refreshed')
+
+                    elif all([snstat['label'] == self.sickrage_label, self.tv_choice == 'sickrage']):
+                        #unrar it, delete the .rar's and post-process against the items remaining in the given directory.
+                        cr = unrar.UnRAR(os.path.join(self.defaultdir, self.sickrage_label ,snstat['name']))
+                        chkrelease = cr.main()
+                        if all([len(chkrelease) == 0, len(snstat['files']) > 1, not os.path.isdir(os.path.join(self.defaultdir, self.sickrage_label, snstat['name']))]):
+                            #if this hits, then the retrieval from the seedbox failed probably due to another script moving into a finished/completed directory (ie. race-condition)
+                            logger.warn('[SICKRAGE] Problem with snatched files - nothing seems to have downloaded. Retrying the snatch again in case the file was moved from a download location to a completed location on the client.')
+                            time.sleep(10)
+                            self.hash_reload = True
+                            continue
+
+                        logger.info('[SICKRAGE] Placing call to update Sickrage')
+                        sickrage_info = {'sickrage_conf': self.sickrage_conf,
+                                         'applylabel':    self.applylabel,
+                                         'defaultdir':    self.defaultdir,
+                                         'snstat':        snstat}
+                        sr = sickrage.Sickrage(sickrage_info)
+                        sickrage_process = sr.post_process()
+
+                        if not any([item['mode'] == 'hash-add', item['mode'] == 'file-add']):
+                            logger.info('[HARPOON] Removing completed file from queue directory.')
+                            try:
+                                os.remove(os.path.join(self.torrentfile_dir, self.sickrage_label, item['item'] + '.' + item['mode']))
+                                logger.info('[HARPOON] File removed')
+                            except:
+                                logger.warn('[HARPOON] Unable to remove file from snatch queue directory [' + item['item'] + '.' + item['mode'] + ']. You should delete it manually to avoid re-downloading')
+
+                        if sickrage_process is True:
+                            logger.info('[SICKRAGE] Successfully post-processed : ' + snstat['name'])
+                        else:
+                            logger.info('[SICKRAGE] Unable to confirm successful post-processing - this could be due to running out of hdd-space, an error, or something else occuring to halt post-processing of the episode.')
+                            logger.info('[SICKRAGE] HASH: %s / label: %s' % (snstat['hash'], snstat['label']))
+
+                        CKQUEUE.append({'hash':   snstat['hash'],
+                                        'stage':  'completed'})
+
+                        if all([self.plex_update is True, sickrage_process is True]):
+
+                            logger.info('[PLEX-UPDATE] Now submitting update library request to plex')
+                            plexit = plex.Plex({'plex_update':     self.plex_update,
+                                                'plex_host_ip':    self.plex_host_ip,
+                                                'plex_host_port':  self.plex_host_port,
+                                                'plex_token':      self.plex_token,
+                                                'plex_login':      self.plex_login,
+                                                'plex_password':   self.plex_password,
+                                                'plex_label':      snstat['label'],
+                                                'root_path':       None,})
+
+                            pl = plexit.connect()
+
+                            if pl['status'] is True:
+                                logger.info('[HARPOON-PLEX-UPDATE] Completed (library is currently being refreshed)')
+                            else:
+                                logger.warn('[HARPOON-PLEX-UPDATE] Failure - library could NOT be refreshed')
+
+                    elif snstat['label'] == self.radarr_label:
+                        #check list of files for rar's here...
+                        cr = unrar.UnRAR(os.path.join(self.defaultdir, self.radarr_label ,snstat['name']))
+                        chkrelease = cr.main()
+                        if all([len(chkrelease) == 0, len(snstat['files']) > 1, not os.path.isdir(os.path.join(self.defaultdir, self.radarr_label, snstat['name']))]):
+                            #if this hits, then the retrieval from the seedbox failed probably due to another script moving into a finished/completed directory (ie. race-condition)
+                            logger.warn('[RADARR] Problem with snatched files - nothing seems to have downloaded. Retrying the snatch again in case the file was moved from a download location to a completed location on the client.')
+                            time.sleep(60)
+                            self.hash_reload = True
+                            continue
+
+                        logger.info('[RADARR] UNRAR - %s' % chkrelease)
+
+                        logger.info('[RADARR] Placing call to update Radarr')
+
+                        radarr_info = {'radarr_url':                self.radarr_url,
+                                       'radarr_label':              self.radarr_label,
+                                       'radarr_headers':            self.radarr_headers,
+                                       'applylabel':                self.applylabel,
+                                       'defaultdir':                self.defaultdir,
+                                       'radarr_rootdir':            self.radarr_rootdir,
+                                       'torrentfile_dir':           self.torrentfile_dir,
+                                       'keep_original_foldernames': self.radarr_keep_original_foldernames,
+                                       'dir_hd_movies':             self.dir_hd_movies,
+                                       'dir_sd_movies':             self.dir_sd_movies,
+                                       'dir_web_movies':            self.dir_web_movies,
+                                       'radarr_id':                 None,
+                                       'radarr_movie':              None,
+                                       'snstat':                    snstat}
+
+                        rr = radarr.Radarr(radarr_info)
+                        radarr_process = rr.post_process()
+
+                        if not any([item['mode'] == 'hash-add', item['mode'] == 'file-add']):
+                            logger.info('[HARPOON] Removing completed file from queue directory.')
+                            try:
+                                os.remove(os.path.join(self.torrentfile_dir, self.radarr_label, item['item'] + '.' + item['mode']))
+                                logger.info('[HARPOON] File removed')
+                            except:
+                                logger.warn('[HARPOON] Unable to remove file from snatch queue directory [' + item['item'] + '.' + item['mode'] + ']. You should delete it manually to avoid re-downloading.')
+
+                        if self.radarr_keep_original_foldernames is True:
+                            logger.info('[HARPOON] Keep Original FolderNames are enabled for Radarr. Altering paths ...')
+                            radarr_info['radarr_id'] = radarr_process['radarr_id']
+                            radarr_info['radarr_movie'] = radarr_process['radarr_movie']
+
+                            rof = radarr.Radarr(radarr_info)
+                            radarr_keep_og = rof.og_folders()
+
+                        if radarr_process['status'] is True:
+                            logger.info('[RADARR] Successfully post-processed : ' + snstat['name'])
+                        else:
+                            logger.info('[RADARR] Unable to confirm successful post-processing - this could be due to running out of hdd-space, an error, or something else occuring to halt post-processing of the movie.')
+                            logger.info('[RADARR] HASH: %s / label: %s' % (snstat['hash'], snstat['label']))
+
+                        logger.info('[RADARR] Successfully completed post-processing of ' + snstat['name'])
+                        CKQUEUE.append({'hash':   snstat['hash'],
+                                        'stage':  'completed'})
+
+                        if all([self.plex_update is True, radarr_process['status'] is True]):
+                            logger.info('[PLEX-UPDATE] Now submitting update library request to plex')
+                            plexit = plex.Plex({'plex_update':     self.plex_update,
+                                                'plex_host_ip':    self.plex_host_ip,
+                                                'plex_host_port':  self.plex_host_port,
+                                                'plex_token':      self.plex_token,
+                                                'plex_login':      self.plex_login,
+                                                'plex_password':   self.plex_password,
+                                                'plex_label':      snstat['label'],
+                                                'root_path':       radarr_process['radarr_root']})
+                            pl = plexit.connect()
+
+                            if pl['status'] is True:
+                                logger.info('[HARPOON-PLEX-UPDATE] Completed (library is currently being refreshed)')
+                            else:
+                                logger.warn('[HARPOON-PLEX-UPDATE] Failure - library could NOT be refreshed')
+
+                    elif snstat['label'] == self.lidarr_label:
+                        #check list of files for rar's here...
+                        cr = unrar.UnRAR(os.path.join(self.defaultdir, self.lidarr_label ,snstat['name']))
+                        chkrelease = cr.main()
+                        if all([len(chkrelease) == 0, len(snstat['files']) > 1, not os.path.isdir(os.path.join(self.defaultdir, self.lidarr_label, snstat['name']))]):
+                            #if this hits, then the retrieval from the seedbox failed probably due to another script moving into a finished/completed directory (ie. race-condition)
+                            logger.warn('[LIDARR] Problem with snatched files - nothing seems to have downloaded. Retrying the snatch again in case the file was moved from a download location to a completed location on the client.')
+                            time.sleep(60)
+                            self.hash_reload = True
+                            continue
+
+                        logger.info('[LIDARR] UNRAR - %s' % chkrelease)
+
+                        logger.info('[LIDARR] Placing call to update Lidarr')
+
+                        lidarr_info = {'lidarr_url':                self.lidarr_url,
+                                       'lidarr_label':              self.lidarr_label,
+                                       'lidarr_headers':            self.lidarr_headers,
+                                       'applylabel':                self.applylabel,
+                                       'defaultdir':                self.defaultdir,
+                                       'torrentfile_dir':           self.torrentfile_dir,
+                                       'snstat':                    snstat}
+
+                        lr = lidarr.Lidarr(lidarr_info)
+                        lidarr_process = lr.post_process()
+
+                        if not any([item['mode'] == 'hash-add', item['mode'] == 'file-add']):
+                            logger.info('[HARPOON] Removing completed file from queue directory.')
+                            try:
+                                os.remove(os.path.join(self.torrentfile_dir, self.lidarr_label, item['item'] + '.' + item['mode']))
+                                logger.info('[HARPOON] File removed')
+                            except:
+                                logger.warn('[HARPOON] Unable to remove file from snatch queue directory [' + item['item'] + '.' + item['mode'] + ']. You should delete it manually to avoid re-downloading.')
+
+                        if lidarr_process is True:
+                            logger.info('[LIDARR] Successfully post-processed : ' + snstat['name'])
+                        else:
+                            logger.info('[LIDARR] Unable to confirm successful post-processing - this could be due to running out of hdd-space, an error, or something else occuring to halt post-processing of the movie.')
+                            logger.info('[LIDARR] HASH: %s / label: %s' % (snstat['hash'], snstat['label']))
+
+                        logger.info('[LIDARR] Successfully completed post-processing of ' + snstat['name'])
+                        CKQUEUE.append({'hash':   snstat['hash'],
+                                        'stage':  'completed'})
+
+                        if all([self.plex_update is True, lidarr_process['status'] is True]):
+                            logger.info('[PLEX-UPDATE] Now submitting update library request to plex')
+                            plexit = plex.Plex({'plex_update':     self.plex_update,
+                                                'plex_host_ip':    self.plex_host_ip,
+                                                'plex_host_port':  self.plex_host_port,
+                                                'plex_token':      self.plex_token,
+                                                'plex_login':      self.plex_login,
+                                                'plex_password':   self.plex_password,
+                                                'plex_label':      snstat['label']})
+                            pl = plexit.connect()
+
+                            if pl['status'] is True:
+                                logger.info('[HARPOON-PLEX-UPDATE] Completed (library is currently being refreshed)')
+                            else:
+                                logger.warn('[HARPOON-PLEX-UPDATE] Failure - library could NOT be refreshed')
+
+                    elif snstat['label'] == self.lazylibrarian_label:
+                        #unrar it, delete the .rar's and post-process against the items remaining in the given directory.
+                        cr = unrar.UnRAR(os.path.join(self.defaultdir, self.lazylibrarian_label ,snstat['name']))
+                        chkrelease = cr.main()
+                        if all([len(chkrelease) == 0, len(snstat['files']) > 1, not os.path.isdir(os.path.join(self.defaultdir, self.lazylibrarian_label, snstat['name']))]):
+                            #if this hits, then the retrieval from the seedbox failed probably due to another script moving into a finished/completed directory (ie. race-condition)
+                            logger.warn('[LAZYLIBRARIAN] Problem with snatched files - nothing seems to have downloaded. Retrying the snatch again in case the file was moved from a download location to a completed location on the client.')
+                            time.sleep(10)
+                            self.hash_reload = True
+                            continue
+
+                        logger.info('[LAZYLIBRARIAN] Placing call to update LazyLibrarian')
+                        ll_file = os.path.join(self.torrentfile_dir, self.lazylibrarian_label, item['item'] + '.' + item['mode'])
+                        if os.path.isfile(ll_file):
+                            ll_filedata = json.load(open(ll_file))
+                            logger.info('[LAZYLIBRARIAN] File data loaded.')
+                        else:
+                            ll_filedata = None
+                            logger.info('[LAZYLIBRARIAN] File data NOT loaded.')
+                        ll_info = {'lazylibrarian_headers': self.lazylibrarian_headers,
+                                              'lazylibrarian_url': self.lazylibrarian_url,
+                                              'lazylibrarian_label': self.lazylibrarian_label,
+                                              'lazylibrarian_apikey': self.lazylibrarian_apikey,
+                                              'lazylibrarian_filedata': ll_filedata,
+                                              'applylabel':    self.applylabel,
+                                              'defaultdir':    self.defaultdir,
+                                              'snstat':        snstat}
+                        ll = lazylibrarian.LazyLibrarian(ll_info)
+                        logger.info('[LAZYLIBRARIAN] Processing')
+                        lazylibrarian_process = ll.post_process()
+
+                        if not any([item['mode'] == 'hash-add', item['mode'] == 'file-add']):
+                            logger.info('[HARPOON] Removing completed file from queue directory.')
+                            try:
+                                os.remove(os.path.join(self.torrentfile_dir, self.lazylibrarian_label, item['item'] + '.' + item['mode']))
+                                logger.info('[HARPOON] File removed')
+                            except:
+                                logger.warn('[HARPOON] Unable to remove file from snatch queue directory [' + item['item'] + '.' + item['mode'] + ']. You should delete it manually to avoid re-downloading')
+
+                        if lazylibrarian_process is True:
+                            logger.info('[LAZYLIBRARIAN] Successfully post-processed : ' + snstat['name'])
+                        else:
+                            logger.info('[LAZYLIBRARIAN] Unable to confirm successful post-processing - this could be due to running out of hdd-space, an error, or something else occuring to halt post-processing of the episode.')
+                            logger.info('[LAZYLIBRARIAN] HASH: %s / label: %s' % (snstat['hash'], snstat['label']))
+
+                        CKQUEUE.append({'hash':   snstat['hash'],
+                                        'stage':  'completed'})
+
+                        if all([self.plex_update is True, lazylibrarian_process is True]):
+
+                            logger.info('[PLEX-UPDATE] Now submitting update library request to plex')
+                            plexit = plex.Plex({'plex_update':     self.plex_update,
+                                                'plex_host_ip':    self.plex_host_ip,
+                                                'plex_host_port':  self.plex_host_port,
+                                                'plex_token':      self.plex_token,
+                                                'plex_login':      self.plex_login,
+                                                'plex_password':   self.plex_password,
+                                                'plex_label':      snstat['label'],
+                                                'root_path':       None,})
+
+                            pl = plexit.connect()
+
+                            if pl['status'] is True:
+                                logger.info('[HARPOON-PLEX-UPDATE] Completed (library is currently being refreshed)')
+                            else:
+                                logger.warn('[HARPOON-PLEX-UPDATE] Failure - library could NOT be refreshed')
+
+
+                    elif snstat['label'] == 'music':
+                        logger.info('[MUSIC] Successfully auto-snatched!')
+                        if not any([item['mode'] == 'hash-add', item['mode'] == 'file-add']):
+                            logger.info('[MUSIC] Removing completed file from queue directory.')
+                            try:
+                                os.remove(os.path.join(self.torrentfile_dir, snstat['label'], item['item'] + '.' + item['mode']))
+                                logger.info('[MUSIC] File removed from system so no longer queuable')
+                            except:
+                                try:
+                                    os.remove(os.path.join(self.torrentfile_dir, snstat['label'], snstat['hash'] + '.hash'))
+                                    logger.info('[MUSIC] File removed by hash from system so no longer queuable')
+                                except:
+                                    logger.warn('[MUSIC] Unable to remove file from snatch queue directory [' + item['item'] + '.' + item['mode'] + ']. You should delete it manually to avoid re-downloading.')
+                        else:
+                            logger.info('[MUSIC] Completed status returned for manual post-processing of file.')
+
+                        CKQUEUE.append({'hash':   snstat['hash'],
+                                        'stage':  'completed'})
+
+                        logger.info('Auto-Snatch of torrent completed.')
+
+                    elif snstat['label'] == 'xxx':
+                        logger.info('[XXX] Successfully auto-snatched!')
+                        if not any([item['mode'] == 'hash-add', item['mode'] == 'file-add']):
+                            logger.info('[XXX] Removing completed file from queue directory.')
+                            try:
+                                os.remove(os.path.join(self.torrentfile_dir, snstat['label'], item['item'] + '.' + item['mode']))
+                                logger.info('[XXX] File removed')
+                            except:
+                                try:
+                                    os.remove(os.path.join(self.torrentfile_dir, snstat['label'], snstat['hash'] + '.hash'))
+                                    logger.info('[MUSIC] XXX removed by hash from system so no longer queuable')
+                                except:
+                                    logger.warn('[XXX] Unable to remove file from snatch queue directory [' + item['item'] + '.' + item['mode'] + ']. You should delete it manually to avoid re-downloading.')
+                        else:
+                            logger.info('[XXX] Completed status returned for manual post-processing of file.')
+
+                        CKQUEUE.append({'hash':   snstat['hash'],
+                                        'stage':  'completed'})
+
+                        logger.info('Auto-Snatch of torrent completed.')
+
+                    elif snstat['label'] == self.mylar_label:
+
+                        logger.info('[MYLAR] Placing call to update Mylar')
+                        mylar_info = {'mylar_url':        self.mylar_url,
+                                      'mylar_headers':    self.mylar_headers,
+                                      'mylar_apikey':     self.mylar_apikey,
+                                      'mylar_label':      self.mylar_label,
+                                      'applylabel':       self.applylabel,
+                                      'torrentfile_dir':  self.torrentfile_dir,
+                                      'defaultdir':       self.defaultdir,
+                                      'snstat':           snstat}
+
+                        my = mylar.Mylar(mylar_info)
+                        mylar_process = my.post_process()
+
+                        logger.info('[MYLAR] Successfully auto-snatched!')
+                        if not any([item['mode'] == 'hash-add', item['mode'] == 'file-add']):
+                            logger.info('[MYLAR] Removing completed file from queue directory.')
+                            try:
+                                os.remove(os.path.join(self.torrentfile_dir, snstat['label'], item['item'] + '.' + item['mode']))
+                                logger.info('[MYLAR] File removed')
+                            except:
+                                try:
+                                    os.remove(os.path.join(self.torrentfile_dir, snstat['label'], snstat['hash'] + '.hash'))
+                                    logger.info('[MYLAR] File removed by hash from system so no longer queuable')
+                                except:
+                                    logger.warn('[MYLAR] Unable to remove file from snatch queue directory [' + item['item'] + '.' + item['mode'] + ']. You should delete it manually to avoid re-downloading.')
+                        else:
+                            logger.info('[MYLAR] Completed status returned for manual post-processing of file.')
+
+                        CKQUEUE.append({'hash':   snstat['hash'],
+                                        'stage':  'completed'})
+
+                        logger.info('Auto-Snatch of torrent completed.')
+
                     else:
-                        logger.info('Completed status returned for manual post-processing of file.')
+                        logger.info('Successfully auto-snatched!')
+                        if not any([item['mode'] == 'hash-add', item['mode'] == 'file-add']):
+                            logger.info('Removing completed file from queue directory.')
+                            try:
+                                os.remove(os.path.join(self.torrentfile_dir, snstat['label'], item['item'] + '.' + item['mode']))
+                                logger.info('File removed')
+                            except:
+                                try:
+                                    os.remove(os.path.join(self.torrentfile_dir, snstat['label'], snstat['hash'] + '.hash'))
+                                    logger.info('File removed by hash from system so no longer queuable')
+                                except:
+                                    logger.warn('Unable to remove file from snatch queue directory [' + item['item'] + '.' + item['mode'] + ']. You should delete it manually to avoid re-downloading.')
+                        else:
+                            logger.info('Completed status returned for manual post-processing of file.')
 
-                    CKQUEUE.append({'hash':   snstat['hash'],
-                                    'stage':  'completed'})
+                        CKQUEUE.append({'hash':   snstat['hash'],
+                                        'stage':  'completed'})
 
-                    logger.info('Auto-Snatch of torrent completed.')
+                        logger.info('Auto-Snatch of torrent completed.')
 
-                if any([item['mode'] == 'hash-add', item['mode'] == 'file-add']) and self.daemon is False:
-                    queue.put({'mode': 'exit',
-                               'item': 'None'})
+                    if any([item['mode'] == 'hash-add', item['mode'] == 'file-add']) and self.daemon is False:
+                        queue.put({'mode': 'exit',
+                                   'item': 'None'})
 
     def sizeof_fmt(self, num, suffix='B'):
         for unit in ['','Ki','Mi','Gi','Ti','Pi','Ei','Zi']:
@@ -1108,8 +1119,17 @@ class QueueR(object):
                 for f in filenames:
                     if any([f.endswith(ext) for ext in extensions]):
                         if f.endswith('.file'):
+                            client = None
                             #history only works with sonarr/radarr...
                             #if any([f[-11:] == 'sonarr', f[-11:] == 'radarr']):
+                            actualfile = os.path.join(dirpath, f)
+                            filecontent = json.load(open(actualfile))
+                            if filecontent:
+                                if 'data' in filecontent.keys():
+                                    if 'downloadClient' in filecontent['data'].keys():
+                                        client = filecontent['downloadClient'].lower()
+                                elif 'Source' in filecontent.keys():
+                                    client = filecontent['Source'].lower()
                             hash = self.history_poll(f[:-5])
                             logger.info('hash:' + str(hash))
                             logger.info('working_hash:' + str(self.current_hash))
@@ -1130,10 +1150,15 @@ class QueueR(object):
                                 else:
                                     #label = os.path.basename(dirpath)
                                     label = None
-
-                                self.queue.put({'mode': 'hash',
-                                                'item':  hash,
-                                                'label': label})
+                                if client:
+                                    self.queue.put({'mode': 'hash',
+                                                    'item': hash,
+                                                    'label': label,
+                                                    'client': client})
+                                else:
+                                    self.queue.put({'mode': 'hash',
+                                                    'item':  hash,
+                                                    'label': label})
                                 CKQUEUE.append({'hash':   hash,
                                                 'stage':  'to-do'})
 
@@ -1154,6 +1179,7 @@ class QueueR(object):
                         else:
                             #here we queue it up to send to the client and then monitor.
                             if f.endswith('.torrent'):
+                                client = 'rtorrent' # Assumes rtorrent, if we add more torrent clients, this needs to change.
                                 subdir = os.path.basename(dirpath)
                                 #torrents to snatch should be subfolders in order to apply labels if required.
                                 fpath = os.path.join(self.conf_info['torrentfile_dir'], subdir, f)
@@ -1187,8 +1213,18 @@ class QueueR(object):
                                 dirp = os.path.basename(dirpath)
                                 if label is None and os.path.basename(self.conf_info['torrentfile_dir']) != dirp:
                                     label = dirp
-                                mode = f[-4:] 
-
+                                mode = f[-4:]
+                                actualfile = os.path.join(dirpath, f)
+                                filecontent = json.load(open(actualfile))
+                                if filecontent:
+                                    if 'data' in filecontent.keys():
+                                        if 'downloadClient' in filecontent['data'].keys():
+                                            client = filecontent['data']['downloadClient'].lower()
+                                    elif 'Source' in filecontent.keys():
+                                        client = filecontent['Source'].lower()
+                                    else:
+                                        client = None
+                                logger.debug('Client: %s' % client)
                             #test here to make sure the file isn't being worked on currently & doesnt exist in queue already
                             dupchk = [x for x in CKQUEUE if x['hash'] == hashfile]
                             duplist = []
@@ -1204,10 +1240,15 @@ class QueueR(object):
                                 logger.info('HASH not in queue - adding : ' + hashfile)
                                 CKQUEUE.append({'hash':   hashfile,
                                                 'stage':  'to-do'})
-                                self.queue.put({'mode':   mode,
-                                                'item':   hashfile,
-                                                'label':  label})
-
+                                if client:
+                                    self.queue.put({'mode':   mode,
+                                                    'item':   hashfile,
+                                                    'label':  label,
+                                                    'client': client})
+                                else:
+                                    self.queue.put({'mode':   mode,
+                                                    'item':   hashfile,
+                                                    'label':  label})
                                 hashfile = str(hashfile) + '.hash'
                                 if label is not None:
                                     fpath = os.path.join(self.conf_info['torrentfile_dir'], label, f)
