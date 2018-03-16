@@ -85,6 +85,7 @@ class QueueR(object):
         parser.add_option('-l', '--label', dest='label', help='For use ONLY with -t, specify a label that the HASH has that harpoon can check against when querying the torrent client.')
         parser.add_option('-t', '--exists', dest='exists', action='store_true', help='In combination with -s (Specify a HASH) & -l (Specify a label) with this enabled and it will not download the torrent (it must exist in the designated location already')
         parser.add_option('-f', '--file', dest='file', help='Specify an exact filename to snatch from specified torrent client. (Will do recursive if more than one file)')
+        parser.add_option('-i', '--issueid', dest='issueid', help='In conjunction with -s,-l allows you to specify an exact issueid post-process against (MYLAR ONLY).')
         parser.add_option('-b', '--partial', dest='partial', action='store_true', help='Grab the torrent regardless of completion status (for cherrypicked torrents)')
         parser.add_option('-m', '--monitor', dest='monitor', action='store_true', help='Monitor a designated file location for new files to harpoon.')
         parser.add_option('-d', '--daemon', dest='daemon', action='store_true', help='Daemonize the complete program so it runs in the background.')
@@ -109,6 +110,11 @@ class QueueR(object):
             self.exists = True
         else:
             self.exists = False
+
+        if options.issueid:
+            self.issueid = options.issueid
+        else:
+            self.issueid = None
 
         if options.partial:
             self.partial = True
@@ -145,7 +151,7 @@ class QueueR(object):
         self.not_loaded = 0
 
         self.conf_location = os.path.join(DATADIR, 'conf', 'harpoon.conf')
-        self.applylabel = self.configchk('general', 'applylabel', str)
+        self.applylabel = self.configchk('general', 'applylabel', bool)
         self.defaultdir = self.configchk('general', 'defaultdir', str)
         self.torrentfile_dir = self.configchk('general', 'torrentfile_dir', str)
         self.torrentclient = self.configchk('general', 'torrentclient', str)
@@ -165,7 +171,7 @@ class QueueR(object):
         self.bookdir = self.configchk('label_directories', 'bookdir', str)
 
         #sabnzbd
-        self.sab_cleanup = self.configchk('sabnzbd', 'sab_cleanup', int)
+        self.sab_cleanup = self.configchk('sabnzbd', 'sab_cleanup', bool)
 
         #lftp/transfer
         self.pp_host = self.configchk('post-processing', 'pp_host', str)
@@ -1306,9 +1312,12 @@ class QueueR(object):
                             if dupchk:
                                 for xc in dupchk:
                                     if xc['stage'] == 'completed':
-                                        # logger.info('Status is now completed - forcing removal of HASH from queue.')
-                                        # self.queue.pop(xc['hash'])
-                                        pass # queue doesn't have a pop method, and I didn't see a way to remove a specific item from the queue. - D
+                                        try:
+                                            logger.info('Status is now completed - forcing removal of HASH from queue.')
+                                            self.queue.pop(xc['hash'])
+                                        except Exception as e:
+                                            logger.warn('Unable to locate hash in queue. Was already removed most likely. This was the error returned: %s' % e)
+                                            continue
                                     else:
                                         pass
                                         #logger.info('HASH already exists in queue in a status of ' + xc['stage'] + ' - avoiding duplication: ' + hashfile)
@@ -1412,6 +1421,24 @@ class QueueR(object):
             thehash = hashlib.sha1(bencode.encode(info)).hexdigest().upper()
             logger.info('Hash: ' + thehash)
             return thehash
+
+        def get_free_space(self, folder, min_threshold=100000000):
+            #threshold for minimum amount of freespace available (#100mb)
+            st = os.statvfs(folder)
+            dst_freesize = st.f_bavail * st.f_frsize
+            logger.debug('[FREESPACE-CHECK] %s has %s free' % (folder, self.sizeof_fmt(dst_freesize)))
+            if min_threshold > dst_freesize:
+                logger.warn('[FREESPACE-CHECK] There is only %s space left on %s' % (dst_freesize, folder))
+                return False
+            else:
+                return True
+
+        def sizeof_fmt(self, num, suffix='B'):
+            for unit in ['','Ki','Mi','Gi','Ti','Pi','Ei','Zi']:
+                if abs(num) < 1024.0:
+                    return "%3.1f%s%s" % (num, unit, suffix)
+                num /= 1024.0
+            return "%.1f%s%s" % (num, 'Yi', suffix)
 
         def filesafe(self, name):
             import unicodedata

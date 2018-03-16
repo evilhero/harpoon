@@ -22,7 +22,7 @@ STARTONLOAD=true
 [sabnzbd]
 SAB_URL=
 SAB_APIKEY=
-SAB_CLEANUP=0
+SAB_CLEANUP=false
 
 [post-processing]
 PP_HOST=

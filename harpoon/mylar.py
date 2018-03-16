@@ -29,6 +29,7 @@ class Mylar(object):
        self.applylabel = mylar_info['applylabel']
        self.torrentfile_dir = mylar_info['torrentfile_dir']
        self.defaultdir = mylar_info['defaultdir']
+       self.issueid = mylar_info['issueid']
        self.snstat = mylar_info['snstat']
 
     def post_process(self):
@@ -50,11 +51,20 @@ class Mylar(object):
                #mylar retry issue will not have a release_name
                nzb_name = data['mylar_torrent_filename']
 
-           if data['mylar_release_pack'] is False:
-               issueid = data['mylar_issueid']
+           if self.issueid is None:
+               if data['mylar_release_pack'] == 'False':
+                   issueid = data['mylar_issueid']
+               else:
+                   issueid = None
+               comicid = data['mylar_comicid']
            else:
-               issueid = None
-           comicid = data['mylar_comicid']
+               issueid = self.issueid
+               comicid = None
+
+       if self.issueid is not None and nzb_name == 'Manual Run':
+           issueid = self.issueid
+           comicid = None
+           nzb_name = self.snstat['name']
 
        url = self.mylar_url + '/api'
        if self.applylabel == 'true':
