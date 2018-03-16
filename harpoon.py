@@ -499,7 +499,7 @@ class QueueR(object):
                     os.environ['conf_location'] = self.conf_location
                     os.environ['harpoon_location'] = re.sub("'", "\\'",downlocation)
                     os.environ['harpoon_label'] = labelit
-                    os.environ['harpoon_applylabel'] = self.applylabel
+                    os.environ['harpoon_applylabel'] = str(self.applylabel).lower()
                     os.environ['harpoon_defaultdir'] = self.defaultdir
                     os.environ['harpoon_multiplebox'] = multiplebox
 
@@ -938,6 +938,7 @@ class QueueR(object):
                                   'mylar_apikey':     self.mylar_apikey,
                                   'mylar_label':      self.mylar_label,
                                   'applylabel':       self.applylabel,
+                                  'issueid':          self.issueid,
                                   'torrentfile_dir':  self.torrentfile_dir,
                                   'defaultdir':       self.defaultdir,
                                   'snstat':           snstat}
