@@ -1283,6 +1283,8 @@ class QueueR(object):
                                                 client = filecontent['data']['downloadClient'].lower()
                                         elif 'Source' in filecontent.keys():
                                             client = filecontent['Source'].lower()
+                                        elif 'mylar_client' in filecontent.keys():
+                                            client = filecontent['mylar_client'].lower()
                                         else:
                                             client = None
                                 except Exception as e:
