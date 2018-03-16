@@ -19,6 +19,11 @@ SSL=true
 VERIFY_SSL=true
 STARTONLOAD=true
 
+[sabnzbd]
+SAB_URL=
+SAB_APIKEY=
+SAB_CLEANUP=0
+
 [post-processing]
 PP_HOST=
 PP_SSHPORT=

@@ -85,7 +85,7 @@ else:
         if '//' in inputfile:
             inputfile = re.sub('-', '//', inputfile).strip()
         if '/' in inputfile: # FreeBSD matching
-            inputfile = inputfile.replace('-', '/')
+            inputfile = inputfile.replace('/', '-')
         label = radarr_label
         filetype = '.file'
     elif mode == 'lidarr':
@@ -93,7 +93,7 @@ else:
         if '//' in inputfile:
             inputfile = re.sub('-', '//', inputfile).strip()
         if '/' in inputfile:
-            inputfile = re.sub('-', '/', inputfile).strip()
+            inputfile =inputfile.replace('/', '-')
         label = lidarr_label
         filetype = '.file'
     elif len(args) > 2:

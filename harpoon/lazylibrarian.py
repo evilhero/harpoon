@@ -42,9 +42,12 @@ class LazyLibrarian(object):
         else:
             newpath = os.path.join(self.defaultdir, self.snstat['name'])
         if self.lazylibrarian_filedata and 'BookID' in self.lazylibrarian_filedata.keys():
-            brandnewpath = newpath + ' LL.(%s)' % self.lazylibrarian_filedata['BookID']
+            if not newpath.endswith('LL.(%s)' % self.lazylibrarian_filedata['BookID']):
+                brandnewpath = newpath + ' LL.(%s)' % self.lazylibrarian_filedata['BookID']
+            else:
+                brandnewpath = newpath
             logger.debug('[LAZYLIBRARIAN] New Path: %s' % brandnewpath)
-            if os.path.isdir(newpath):
+            if os.path.isdir(newpath) and newpath != brandnewpath:
                 logger.debug('[LAZYLIBRARIAN] Renaming Folder')
                 os.rename(newpath, brandnewpath)
                 logger.debug('Path Renamed')
@@ -54,11 +57,21 @@ class LazyLibrarian(object):
                 os.mkdir(brandnewpath)
                 logger.debug('NewFile: %s' % newfile)
                 shutil.move(newpath, newfile)
+            elif os.path.isdir(brandnewpath):
+                logger.debug('[LAZYLIBRARIAN] Processing folder already exists.')
             else:
                 logger.debug('[LAZYLIBRARIAN] File not found.')
                 return False
         else:
-            brandnewpath = newpath
+            if os.path.isfile(newpath):
+                brandnewpath = newpath + ' PROCESS'
+                logger.debug('[LAZYLIBRARIAN] Moving file (%s) into folder (%s)' % (newpath, brandnewpath))
+                newfile = os.path.join(brandnewpath, self.snstat['name'])
+                os.mkdir(brandnewpath)
+                logger.debug('NewFile: %s' % newfile)
+                shutil.move(newpath, newfile)
+            else:
+                brandnewpath = newpath
         logger.info('[LAZYLIBRARIAN] Path: %s' % brandnewpath)
         payload = {'cmd':  'forceProcess',
                    'dir': brandnewpath,
