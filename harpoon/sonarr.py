@@ -30,7 +30,7 @@ class Sonarr(object):
 
     def post_process(self):
         url = self.sonarr_url + '/api/command'
-        if self.applylabel == 'true':
+        if self.applylabel is True:
             if self.snstat['label'] == 'None':
                 newpath = os.path.join(self.defaultdir, self.snstat['name'])
             else:
@@ -49,7 +49,7 @@ class Sonarr(object):
         r = requests.post(url, json=payload, headers=self.sonarr_headers)
         data = r.json()
         logger.info('content: %s' % data)
-        
+
         check = True
         while check:
             url = self.sonarr_url + '/api/command/' + str(data['id'])
@@ -58,11 +58,15 @@ class Sonarr(object):
                 r = requests.get(url, params=None, headers=self.sonarr_headers)
                 dt = r.json()
                 logger.info('[SONARR] Reponse: %s' % dt)
-            except:
-                logger.warn('error returned from sonarr call. Aborting.')
+            except Exception as e:
+                logger.warn('[%s] error returned from sonarr call. Aborting.' % e)
                 return False
             else:
                 if dt['state'] == 'completed':
+                    #duration = time.strptime(dt['duration'][:-1], '%H:%M:%S.%f').tm_sec
+                    #if tm_sec < 20:
+                    #    #if less than 20s duration, the pp didn't succeed.
+                    #else:
                     logger.info('[SONARR] Successfully post-processed : ' + self.snstat['name'])
                     check = False
                 else:

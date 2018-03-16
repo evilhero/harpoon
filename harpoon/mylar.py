@@ -67,7 +67,7 @@ class Mylar(object):
            nzb_name = self.snstat['name']
 
        url = self.mylar_url + '/api'
-       if self.applylabel == 'true':
+       if self.applylabel is True:
            if self.snstat['label'] == 'None':
                newpath = os.path.join(self.defaultdir, self.snstat['name'])
            else:

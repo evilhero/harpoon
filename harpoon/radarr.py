@@ -93,7 +93,7 @@ class Radarr(object):
         logger.info('2')
         #we can't run the downloadmoviescan (ie. manual post-processing) since for some reason radarr will push the new download
         #to the original location regardless of any setting previously (it must be storing it in the download table or something)
-        if self.applylabel == 'true':
+        if self.applylabel is True:
             if self.snstat['label'] == 'None':
                 newpath = os.path.join(self.defaultdir, self.snstat['name'])
             else:

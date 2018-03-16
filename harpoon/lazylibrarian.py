@@ -34,7 +34,7 @@ class LazyLibrarian(object):
 
     def post_process(self):
         url = self.lazylibrarian_url + '/api'
-        if self.applylabel == 'true':
+        if self.applylabel is True:
             if self.snstat['label'] == 'None':
                 newpath = os.path.join(self.defaultdir, self.snstat['name'])
             else:

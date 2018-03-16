@@ -487,7 +487,7 @@ class QueueR(object):
                             downlocation = os.path.join(tmpfolder, snstat['files'][0].encode('utf-8'))
 
                     labelit = None
-                    if self.applylabel == 'true':
+                    if self.applylabel is True:
                         if any([snstat['label'] != 'None', snstat['label'] is not None]):
                             labelit = snstat['label']
 
