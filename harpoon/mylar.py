@@ -47,9 +47,14 @@ class Mylar(object):
            try:
                nzb_name = data['mylar_release_name']
            except:
-               #if mylar_release_name doesn't exist, fall back to the torrent_filename.
-               #mylar retry issue will not have a release_name
-               nzb_name = data['mylar_torrent_filename']
+               try:
+                   if 'mylar_release_nzbname' in data.keys():
+                       # nzb_name = "Manual Run"
+                       nzb_name = self.snstat['name']
+               except:
+                   #if mylar_release_name doesn't exist, fall back to the torrent_filename.
+                   #mylar retry issue will not have a release_name
+                   nzb_name = data['mylar_torrent_filename']
 
            if self.issueid is None:
                if data['mylar_release_pack'] == 'False':

@@ -65,8 +65,13 @@ except IndexError:
                 label = mylar_label
                 filetype = '.hash'
                 mode = 'mylar'
+            elif method == 'nzb':
+                inputfile = os.environ.get('mylar_client_id')
+                label = mylar_label
+                filetype = '.hash'
+                mode = 'mylar'
             else:
-                logger.info('mylar_method is not set to torrent, so cannot process this as it is an nzb.')
+                logger.info('mylar_method is not set to torrent or nzb, so I\'m not sure what to do.')
                 sys.exit(1)
         else:
             logger.info('mylar_method not in os.environ, but it was called from mylar...')

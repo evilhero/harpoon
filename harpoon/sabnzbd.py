@@ -122,15 +122,18 @@ class SABnzbd(object):
 
                         logger.info('[SABNZBD] Location found @ %s' % hq['storage'])
                         path_parent = os.path.abspath(os.path.join(hq['storage'], os.pardir))
+                        # Move the following checks to lazylibrarian, as only it cares about this.
                         if os.path.basename(path_parent) == hq['category']:
                             path_folder = hq['storage']
-                            nzbname = re.sub('.nzb', '', hq['nzb_name']).strip()
+                            # nzbname = re.sub('.nzb', '', hq['nzb_name']).strip()
+                            nzbname = os.path.basename(hq['storage'])
                         else:
                             path_folder = path_parent
-                            nzbname = os.path.basename(path_parent)
+                            nzbname = os.path.join(os.path.basename(path_parent), os.path.basename(hq['storage']))
                         found = {'completed': True,
-                                 # 'name': re.sub('.nzb', '', hq['nzb_name']).strip(),
-                                 'name': nzbname,
+                                 'name': re.sub('.nzb', '', hq['nzb_name']).strip(),
+                                 'extendedname' : nzbname,
+                                 # 'name': nzbname,
                                  # 'folder': os.path.abspath(os.path.join(hq['storage'], os.pardir)),
                                  'folder': path_folder,
                                  'mirror': True,  # Change this
