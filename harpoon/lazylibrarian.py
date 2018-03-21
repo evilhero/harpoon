@@ -34,7 +34,7 @@ class LazyLibrarian(object):
 
     def post_process(self):
         url = self.lazylibrarian_url + '/api'
-        if 'extendedname' in self.snstat.keys:
+        if 'extendedname' in self.snstat.keys():
             nzbname = self.snstat['extendedname']
         else:
             nzbname = self.snstat['name']
