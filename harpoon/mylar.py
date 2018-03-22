@@ -62,6 +62,8 @@ class Mylar(object):
                else:
                    issueid = None
                comicid = data['mylar_comicid']
+               if comicid == 'None':
+                   comicid = None
            else:
                issueid = self.issueid
                comicid = None
