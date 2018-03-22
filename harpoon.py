@@ -496,12 +496,14 @@ class QueueR(object):
                     else:
                         multiplebox = snstat['multiple']
 
-                    os.environ['conf_location'] = self.conf_location
-                    os.environ['harpoon_location'] = re.sub("'", "\\'",downlocation)
-                    os.environ['harpoon_label'] = labelit
-                    os.environ['harpoon_applylabel'] = str(self.applylabel).lower()
-                    os.environ['harpoon_defaultdir'] = self.defaultdir
-                    os.environ['harpoon_multiplebox'] = multiplebox
+                    harpoon_env = os.environ.copy()
+
+                    harpoon_env['conf_location'] = self.conf_location
+                    harpoon_env['harpoon_location'] = re.sub("'", "\\'",downlocation)
+                    harpoon_env['harpoon_label'] = labelit
+                    harpoon_env['harpoon_applylabel'] = str(self.applylabel).lower()
+                    harpoon_env['harpoon_defaultdir'] = self.defaultdir
+                    harpoon_env['harpoon_multiplebox'] = multiplebox
 
                     if any([downlocation.endswith(ext) for ext in self.extensions]):
                         combined_lcmd = 'pget -n %s \"%s\"' % (self.lcmdsegments, downlocation)
@@ -510,32 +512,32 @@ class QueueR(object):
                         combined_lcmd = 'mirror -P %s --use-pget-n=%s \"%s\"' % (self.lcmdparallel, self.lcmdsegments, downlocation)
                         logger.debug('[HARPOON] folder   lcmd: %s' % combined_lcmd)
 
-                    os.environ['harpoon_lcmd'] = combined_lcmd
+                    harpoon_env['harpoon_lcmd'] = combined_lcmd
 
                     if any([multiplebox == '1', multiplebox == '0']):
-                        os.environ['harpoon_pp_host'] = self.pp_host
-                        os.environ['harpoon_pp_sshport'] = str(self.pp_sshport)
-                        os.environ['harpoon_pp_user'] = self.pp_user
+                        harpoon_env['harpoon_pp_host'] = self.pp_host
+                        harpoon_env['harpoon_pp_sshport'] = str(self.pp_sshport)
+                        harpoon_env['harpoon_pp_user'] = self.pp_user
                         if self.pp_keyfile is not None:
-                            os.environ['harpoon_pp_keyfile'] = self.pp_keyfile
+                            harpoon_env['harpoon_pp_keyfile'] = self.pp_keyfile
                         else:
-                            os.environ['harpoon_pp_keyfile'] = ''
+                            harpoon_env['harpoon_pp_keyfile'] = ''
                         if self.pp_passwd is not None:
-                            os.environ['harpoon_pp_passwd'] = self.pp_passwd
+                            harpoon_env['harpoon_pp_passwd'] = self.pp_passwd
                         else:
-                            os.environ['harpoon_pp_passwd'] = ''
+                            harpoon_env['harpoon_pp_passwd'] = ''
                     else:
-                        os.environ['harpoon_pp_host'] = self.pp_host2
-                        os.environ['harpoon_pp_sshport'] = str(self.pp_sshport2)
-                        os.environ['harpoon_pp_user'] = self.pp_user2
+                        harpoon_env['harpoon_pp_host'] = self.pp_host2
+                        harpoon_env['harpoon_pp_sshport'] = str(self.pp_sshport2)
+                        harpoon_env['harpoon_pp_user'] = self.pp_user2
                         if self.pp_keyfile2 is not None:
-                            os.environ['harpoon_pp_keyfile'] = self.pp_keyfile2
+                            harpoon_env['harpoon_pp_keyfile'] = self.pp_keyfile2
                         else:
-                            os.environ['harpoon_pp_keyfile'] = ''
+                            harpoon_env['harpoon_pp_keyfile'] = ''
                         if self.pp_passwd2 is not None:
-                            os.environ['harpoon_pp_passwd'] = self.pp_passwd2
+                            harpoon_env['harpoon_pp_passwd'] = self.pp_passwd2
                         else:
-                            os.environ['harpoon_pp_passwd'] = ''
+                            harpoon_env['harpoon_pp_passwd'] = ''
 
                     logger.info('Downlocation: %s' % re.sub("'", "\\'", downlocation))
                     logger.info('Label: %s' % labelit)
@@ -545,7 +547,7 @@ class QueueR(object):
                     logger.info(u"Executing command " + str(script_cmd))
 
                     try:
-                        p = subprocess.Popen(script_cmd, env=dict(os.environ), stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+                        p = subprocess.Popen(script_cmd, env=dict(harpoon_env), stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
                         output, error = p.communicate()
                         if error:
                             logger.warn('[ERROR] %s' % error)
@@ -1005,9 +1007,9 @@ class QueueR(object):
             except Exception as e:
                 logger.info('ERROR - %s' % e)
                 cleanup = None
-            os.environ['harpoon_lcmd'] = 'rm -r \"%s\"' % downlocation
+            harpoon_lcmd = 'rm -r \"%s\"' % downlocation
             try:
-                p = subprocess.Popen(script_cmd, env=dict(os.environ), stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+                p = subprocess.Popen(script_cmd, env=dict(os.environ, harpoon_lcmd=harpoon_lcmd), stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
                 output, error = p.communicate()
                 if error:
                     logger.warn('[ERROR] %s' % error)
