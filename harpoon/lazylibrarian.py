@@ -87,6 +87,8 @@ class LazyLibrarian(object):
             movefile = False
         if movefile:
             logger.debug("[LAZYLIBRARIAN] Moving %s to %s" % (filepath, os.path.join(process_path, filebase)))
+            if not os.path.exists(process_path):
+                os.mkdir(process_path)
             shutil.move(filepath, os.path.join(process_path, filebase))
 
         # if self.lazylibrarian_filedata and 'BookID' in self.lazylibrarian_filedata.keys():

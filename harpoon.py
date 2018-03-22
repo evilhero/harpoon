@@ -1307,8 +1307,6 @@ class QueueR(object):
 
                             #test here to make sure the file isn't being worked on currently & doesnt exist in queue already
                             dupchk = [x for x in CKQUEUE if x['hash'] == hashfile]
-                            logger.debug(dupchk)
-                            logger.debug(list(self.queue.queue))
                             duplist = []
                             if dupchk:
                                 for xc in dupchk:
