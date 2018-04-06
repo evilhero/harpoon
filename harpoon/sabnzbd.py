@@ -19,27 +19,14 @@ import os
 import sys
 import re
 import time
-import logger
 import harpoon
-import ConfigParser
-
+from harpoon import logger
 
 class SABnzbd(object):
-    def __init__(self, params=None, conf=None):
-        #self.sab_url = sab_host + '/api'
-        #self.sab_apikey = 'e90f54f4f757447a20a4fa89089a83ed'
+    def __init__(self, params=None, saburl=None):
         self.params = params
-        self.conf_location = conf
-        config = ConfigParser.RawConfigParser()
-        config.read(self.conf_location)
-        self.sab_url = config.get('sabnzbd', 'sab_url') + '/api'
-        self.sab_apikey = config.get('sabnzbd', 'sab_apikey')
-        self.pp_host = config.get('post-processing', 'pp_host')
-        self.pp_sshport = config.get('post-processing', 'pp_sshport')
-        self.pp_user = config.get('post-processing', 'pp_user')
-        self.pp_passwd = config.get('post-processing', 'pp_passwd')
-        self.pp_basedir = config.get('post-processing', 'pp_basedir')
-        self.params['apikey'] = self.sab_apikey
+        self.sab_url = saburl + '/api'
+        self.sab_apikey = params['apikey']
         self.params['output'] = 'json'
 
 
@@ -84,10 +71,10 @@ class SABnzbd(object):
                  'apikey': self.sab_apikey}
         try:
             logger.info('sending now to %s' % self.sab_url)
-            logger.info('parameters set to %s' % self.params)
+            logger.debug('parameters set to %s' % queue)
             h = requests.get(self.sab_url, params=queue, verify=False)
         except Exception as e:
-            logger.info('uh-oh: %s' % e)
+            logger.error('uh-oh: %s' % e)
             return {'completed': False}
         else:
             queueresponse = h.json()
@@ -101,7 +88,7 @@ class SABnzbd(object):
                     logger.info('[SABNZBD] Dowwnload is not yet finished')
                     return {'completed': False}
             except Exception as e:
-                logger.warn('error: %s' % e)
+                logger.error('error: %s' % e)
                 return {'completed': False}
 
             logger.info('[SABNZBD] Download completed.  Querying history.')
@@ -117,24 +104,13 @@ class SABnzbd(object):
                 for hq in histqueue['slots']:
                     # logger.info('nzo_id: %s --- %s [%s]' % (hq['nzo_id'], sendresponse, hq['status']))
                     if hq['nzo_id'] == sendresponse and hq['status'] == 'Completed':
-                        logger.info(
-                            '[SABNZBD] Found matching completed item in history. Job has a status of %s' % hq['status'])
-
+                        logger.info('[SABNZBD] Found matching completed item in history. Job has a status of %s' % hq['status'])
                         logger.info('[SABNZBD] Location found @ %s' % hq['storage'])
-                        path_parent = os.path.abspath(os.path.join(hq['storage'], os.pardir))
-                        # Move the following checks to lazylibrarian, as only it cares about this.
-                        if os.path.basename(path_parent) == hq['category']:
-                            path_folder = hq['storage']
-                            # nzbname = re.sub('.nzb', '', hq['nzb_name']).strip()
-                            nzbname = os.path.basename(hq['storage'])
-                        else:
-                            path_folder = path_parent
-                            nzbname = os.path.join(os.path.basename(path_parent), os.path.basename(hq['storage']))
+                        path_folder = hq['storage']
+                        nzbname = os.path.basename(hq['storage'])
                         found = {'completed': True,
                                  'name': re.sub('.nzb', '', hq['nzb_name']).strip(),
                                  'extendedname' : nzbname,
-                                 # 'name': nzbname,
-                                 # 'folder': os.path.abspath(os.path.join(hq['storage'], os.pardir)),
                                  'folder': path_folder,
                                  'mirror': True,  # Change this
                                  'multiple': None,
@@ -172,10 +148,10 @@ class SABnzbd(object):
                  'apikey': self.sab_apikey}
         try:
             logger.info('sending now to %s' % self.sab_url)
-            logger.info('parameters set to %s' % self.params)
+            logger.debug('parameters set to %s' % queue)
             h = requests.get(self.sab_url, params=queue, verify=False)
         except Exception as e:
-            logger.info('uh-oh: %s' % e)
+            logger.error('uh-oh: %s' % e)
             return {'status': False}
         else:
             queueresponse = h.json()

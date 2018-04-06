@@ -172,6 +172,8 @@ class QueueR(object):
 
         #sabnzbd
         self.sab_cleanup = self.configchk('sabnzbd', 'sab_cleanup', bool)
+        self.sab_url = self.configchk('sabnzbd', 'sab_url', str)
+        self.sab_apikey = self.configchk('sabnzbd', 'sab_apikey', str)
 
         #lftp/transfer
         self.pp_host = self.configchk('post-processing', 'pp_host', str)
@@ -285,7 +287,8 @@ class QueueR(object):
                          'sickrage': {'sickrage_headers': self.sickrage_conf['sickrage_headers'],
                                       'sickrage_url':     self.sickrage_conf['sickrage_url'],
                                       'sickrage_label':   self.sickrage_label},
-
+                         'sab_url':                   self.sab_url,
+                         'sab_apikey':                self.sab_apikey,
                          'torrentfile_dir':           self.torrentfile_dir,
                          'conf_location':             self.conf_location}
 
@@ -398,9 +401,10 @@ class QueueR(object):
             #use the below code to reference Sonarr to poll the history and get the hash from the given torrentid
             if item['client'] == 'sabnzbd':
                 sa_params = {}
-                sa_params['nzo_id']=item['item']
+                sa_params['nzo_id'] = item['item']
+                sa_params['apikey'] = self.sab_apikey
                 try:
-                    sab = sabnzbd.SABnzbd(params=sa_params, conf=self.conf_location)
+                    sab = sabnzbd.SABnzbd(params=sa_params, saburl=self.sab_url)
                     snstat = sab.query()
 
                 except Exception as e:
@@ -997,12 +1001,14 @@ class QueueR(object):
                                'item': 'None'})
 
     def cleanup_check(self, item, script_cmd, downlocation):
+        logger.info('[CLEANUP-CHECK] item: %s' % item)
         if 'client' in item.keys() and self.sab_cleanup and item['client'] == 'sabnzbd':
             import subprocess
             sa_params = {}
             sa_params['nzo_id'] = item['item']
+            sa_params['apikey'] = self.sab_apikey
             try:
-                sab = sabnzbd.SABnzbd(params=sa_params, conf=self.conf_location)
+                sab = sabnzbd.SABnzbd(params=sa_params, saburl=self.sab_url)
                 cleanup = sab.cleanup()
             except Exception as e:
                 logger.info('ERROR - %s' % e)
@@ -1255,7 +1261,8 @@ class QueueR(object):
                                 sab_params = {}
                                 sab_params['mode'] = 'addfile'
                                 sab_params['cat'] = subdir
-                                nzb_connection = sabnzbd.SABnzbd(params=sab_params, conf=CONF_LOCATION)
+                                sab_params['apikey'] = self.conf_info['sab_apikey']
+                                nzb_connection = sabnzbd.SABnzbd(params=sab_params, saburl=self.conf_info['sab_url'])
                                 nzb_info = nzb_connection.sender(files={'name': open(fpath, 'rb')})
                                 mode = 'hash'
                                 label = str(subdir)

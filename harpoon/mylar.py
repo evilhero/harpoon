@@ -33,7 +33,9 @@ class Mylar(object):
        self.snstat = mylar_info['snstat']
 
     def post_process(self):
+       logger.info('snstat: %s' % self.snstat)
        nzb_name = None
+       nzb = False
        try:
            logger.debug('attempting to open: %s' % os.path.join(self.torrentfile_dir, self.mylar_label, self.snstat['hash'] + '.hash'))
            with open(os.path.join(self.torrentfile_dir, self.mylar_label, self.snstat['hash'] + '.hash')) as dfile:
@@ -49,8 +51,9 @@ class Mylar(object):
            except:
                try:
                    if 'mylar_release_nzbname' in data.keys():
-                       # nzb_name = "Manual Run"
-                       nzb_name = self.snstat['name']
+                       # nzb_name HAS TO BE the filename itself so it can pp directly
+                       nzb_name = os.path.basename(self.snstat['folder'])
+                       nzb = True
                except:
                    #if mylar_release_name doesn't exist, fall back to the torrent_filename.
                    #mylar retry issue will not have a release_name
@@ -74,14 +77,24 @@ class Mylar(object):
            nzb_name = self.snstat['name']
 
        url = self.mylar_url + '/api'
-       if self.applylabel is True:
-           if self.snstat['label'] == 'None':
-               newpath = os.path.join(self.defaultdir, self.snstat['name'])
+       if all([self.applylabel is True, self.snstat['label'] != 'None']):
+           logger.info('1')
+           if nzb is True:
+               logger.info('1-1')
+               newpath = os.path.join(self.defaultdir, self.snstat['label'], self.snstat['extendedname'])
            else:
+               logger.info('1-2')
                newpath = os.path.join(self.defaultdir, self.snstat['label'], self.snstat['name'])
        else:
-           newpath = os.path.join(self.defaultdir, self.snstat['name'])
+           logger.info('2')
+           if nzb is True:
+               logger.info('2-1')
+               newpath = os.path.join(self.defaultdir, self.snstat['extendedname'])
+           else:
+               logger.info('2-2')
+               newpath = os.path.join(self.defaultdir, self.snstat['name'])
 
+       logger.info('newpath: %s' % newpath)
        payload = {'cmd':         'forceProcess',
                   'apikey':      self.mylar_apikey,
                   'nzb_name':    nzb_name,
@@ -93,8 +106,8 @@ class Mylar(object):
        logger.info('[MYLAR] Posting to completed download handling now: %s' % payload)
 
        r = requests.post(url, params=payload, headers=self.mylar_headers)
-       response = r.json()
-       logger.debug('content: %s' % response)
+       #response = r.json()
+       logger.debug('content: %s' % r.content)
 
        logger.debug('[MYLAR] status_code: %s' % r.status_code)
        logger.info('[MYLAR] Successfully post-processed : ' + self.snstat['name'])
