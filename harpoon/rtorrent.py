@@ -74,9 +74,15 @@ class RTorrent(object):
         self.multiple_seedboxes = config.getboolean('general', 'multiple_seedboxes')
         logger.info('multiple_seedboxes: %s' % self.multiple_seedboxes)
         if self.multiple_seedboxes is True:
-            sections = config.get('general', 'multiple1')
-            logger.info('sections: %s' % sections)
-            if label in sections:
+            sectionsconfig1 = config.get('general', 'multiple1')
+            sectionsconfig2 = config.get('general', 'multiple2')
+            sectionlist1 = sectionsconfig1.split(',')
+            sections1 = [x for x in sectionlist1 if x.lower() == label.lower()]
+            sectionlist2 = sectionsconfig2.split(',')
+            sections2 = [x for x in sectionlist2 if x.lower() == label.lower()]
+            logger.info('sections1: %s' % sections1)
+            logger.info('sections2: %s' % sections2)
+            if sections1:
                 logger.info('SEEDBOX-1 ENABLED!')
                 self.start = config.getboolean('rtorrent', 'startonload')
                 self.rtorrent_host = config.get('rtorrent', 'rtorr_host') + ':' + config.get('rtorrent', 'rtorr_port')
@@ -89,7 +95,7 @@ class RTorrent(object):
                 self.basedir = config.get('post-processing', 'pp_basedir')
                 self.multiple = '1'
 
-            elif label in config.get('general', 'multiple2'):
+            elif sections2:
                 logger.info('SEEDBOX-2 ENABLED!')
                 self.start = config.getboolean('rtorrent2', 'startonload')
                 self.rtorrent_host = config.get('rtorrent2', 'rtorr_host') + ':' + config.get('rtorrent2', 'rtorr_port')

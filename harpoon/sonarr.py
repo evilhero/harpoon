@@ -16,6 +16,7 @@
 import os
 import time
 import requests
+import shutil
 from harpoon import logger
 
 class Sonarr(object):
@@ -37,6 +38,16 @@ class Sonarr(object):
                 newpath = os.path.join(self.defaultdir, self.snstat['label'], self.snstat['name'])
         else:
             newpath = os.path.join(self.defaultdir, self.snstat['name'])
+
+        if os.path.isfile(newpath):
+            logger.warn('[SONARR] This is an individual movie, but Sonarr will only import from a directory. Creating a temporary directory and moving this so it can proceed.')
+            newdir = os.path.join(os.path.abspath(os.path.join(newpath, os.pardir)), os.path.splitext(self.snstat['name'])[0])
+            logger.info('[SONARR] Creating directory: %s' % newdir)
+            os.makedirs(newdir)
+            logger.info('[SONARR] Moving %s -TO- %s' % (newpath, newdir))
+            shutil.move(newpath, newdir)
+            newpath = newdir
+            logger.info('[SONARR] New path location now set to: %s' % newpath)
 
         payload = {'name': 'DownloadedEpisodesScan',
                    'path': newpath,
