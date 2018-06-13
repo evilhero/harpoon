@@ -60,10 +60,13 @@ class Mylar(object):
                    nzb_name = data['mylar_torrent_filename']
 
            if self.issueid is None:
-               if data['mylar_release_pack'] == 'False':
-                   issueid = data['mylar_issueid']
+               if 'mylar_issuearcid' != 'None':
+                   issueid = data['mylar_issuearcid']
                else:
-                   issueid = None
+                   if data['mylar_release_pack'] == 'False':
+                       issueid = data['mylar_issueid']
+                   else:
+                       issueid = None
                comicid = data['mylar_comicid']
                if comicid == 'None':
                    comicid = None
@@ -84,7 +87,11 @@ class Mylar(object):
                newpath = os.path.join(self.defaultdir, self.snstat['label'], self.snstat['extendedname'])
            else:
                logger.info('1-2')
-               newpath = os.path.join(self.defaultdir, self.snstat['label'], self.snstat['name'])
+               if os.path.isdir(os.path.join(self.defaultdir, self.snstat['label'], self.snstat['name'])):
+                   newpath = os.path.join(self.defaultdir, self.snstat['label'], self.snstat['name'])
+               else:
+                   if os.path.isdir(os.path.join(self.defaultdir, self.snstat['label'])):
+                       newpath = os.path.join(self.defaultdir, self.snstat['label'])
        else:
            logger.info('2')
            if nzb is True:

@@ -20,6 +20,7 @@ VERIFY_SSL=true
 STARTONLOAD=true
 
 [sabnzbd]
+SAB_ENABLE=false
 SAB_URL=
 SAB_APIKEY=
 SAB_CLEANUP=false

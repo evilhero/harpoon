@@ -49,8 +49,9 @@ try:
     logpath = config.get('general', 'logpath')
 except ConfigParser.NoOptionError:
     logpath = os.path.join(DATADIR, 'logs')
-    if not os.path.isdir(logpath):
-        os.mkdir(logpath)
+
+if not os.path.isdir(logpath):
+    os.mkdir(logpath)
 
 logger.initLogger(logpath)
 
@@ -171,6 +172,8 @@ class QueueR(object):
         self.bookdir = self.configchk('label_directories', 'bookdir', str)
 
         #sabnzbd
+        #sab_enable is only used for harpoonshot so it doesn't create extra sab entries ...
+        self.sab_enable = self.configchk('sabnzbd', 'sab_enable', bool)
         self.sab_cleanup = self.configchk('sabnzbd', 'sab_cleanup', bool)
         self.sab_url = self.configchk('sabnzbd', 'sab_url', str)
         self.sab_apikey = self.configchk('sabnzbd', 'sab_apikey', str)
@@ -504,12 +507,13 @@ class QueueR(object):
 
                     harpoon_env['conf_location'] = self.conf_location
                     harpoon_env['harpoon_location'] = re.sub("'", "\\'",downlocation)
+                    harpoon_env['harpoon_location'] = re.sub("!", "\\!",downlocation)
                     harpoon_env['harpoon_label'] = labelit
                     harpoon_env['harpoon_applylabel'] = str(self.applylabel).lower()
                     harpoon_env['harpoon_defaultdir'] = self.defaultdir
                     harpoon_env['harpoon_multiplebox'] = multiplebox
 
-                    if any([downlocation.endswith(ext) for ext in self.extensions]):
+                    if any([downlocation.endswith(ext) for ext in self.extensions]) or snstat['mirror'] is False:
                         combined_lcmd = 'pget -n %s \"%s\"' % (self.lcmdsegments, downlocation)
                         logger.debug('[HARPOON] file lcmd: %s' % combined_lcmd)
                     else:

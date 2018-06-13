@@ -27,7 +27,7 @@ class UnRAR(object):
 
         if path is None:
             parser = optparse.OptionParser()
-            parser.add_option('-p', '--path', dest='path', help='Full path to scan for rars.')
+            parser.add_option('-p', '--path', dest='path', help='Full path to scan for rar\'s.')
             (options, args) = parser.parse_args()
 
             if options.path:
@@ -86,7 +86,7 @@ class UnRAR(object):
                             continue
                         else:
                             if rar_status == "success":
-                                logger.info('[RAR MANAGER] Successfully extracted rars.')
+                                logger.info('[RAR MANAGER] Successfully extracted rar\'s.')
                                 for rs in rk['info']:
                                     os.remove(os.path.join(self.path, rs['filename']))
                                     logger.info('[RAR MANAGER] Removal of : ' + os.path.join(self.path, rs['filename']))
@@ -134,7 +134,7 @@ class UnRAR(object):
 
 
     def unrar_it(self, rar_set):
-        logger.info('[RAR MANAGER] Extracting ' + str(len(rar_set['info'])) + ' rars for set : ' + os.path.join(rar_set['directory']))
+        logger.info('[RAR MANAGER] Extracting ' + str(len(rar_set['info'])) + ' rar\'s for set : ' + os.path.join(rar_set['directory']))
         #arbitrarily pick the first entry and change directories.
         unrar_folder = rar_set['directory']
         #os.makedirs( unrar_folder )
@@ -150,7 +150,9 @@ class UnRAR(object):
                 logger.warn('[RAR MANAGER] [Unrar Error 3] - Broken Archive.')
             elif e.returncode == 1:
                 logger.warn('[RAR MANAGER] [Unrar Error 1] - No files to extract.')
-            logger.warn('[RAR MANAGER] Incomplete set.')
+            return "unrar error"
+        except Exception as e:
+            logger.warn('[RAR MANAGER] Error: %s' % e)
             return "unrar error"
 
         return "success"
