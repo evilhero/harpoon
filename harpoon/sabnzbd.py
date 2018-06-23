@@ -145,7 +145,8 @@ class SABnzbd(object):
                  'del_files': 1,
                  'value': self.params['nzo_id'],
                  'output': 'json',
-                 'apikey': self.sab_apikey}
+                 'apikey': self.sab_apikey,
+                 'limit': 500}
         try:
             logger.info('sending now to %s' % self.sab_url)
             logger.debug('parameters set to %s' % queue)
