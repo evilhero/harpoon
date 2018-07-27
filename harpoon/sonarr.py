@@ -31,13 +31,16 @@ class Sonarr(object):
 
     def post_process(self):
         url = self.sonarr_url + '/api/command'
+        name = self.snstat['name']
+        if 'extendedname' in self.snstat.keys():
+            name = self.snstat['extendedname']
         if self.applylabel is True:
             if self.snstat['label'] == 'None':
-                newpath = os.path.join(self.defaultdir, self.snstat['name'])
+                newpath = os.path.join(self.defaultdir, name)
             else:
-                newpath = os.path.join(self.defaultdir, self.snstat['label'], self.snstat['name'])
+                newpath = os.path.join(self.defaultdir, self.snstat['label'], name)
         else:
-            newpath = os.path.join(self.defaultdir, self.snstat['name'])
+            newpath = os.path.join(self.defaultdir, name)
 
         if os.path.isfile(newpath):
             logger.warn('[SONARR] This is an individual movie, but Sonarr will only import from a directory. Creating a temporary directory and moving this so it can proceed.')

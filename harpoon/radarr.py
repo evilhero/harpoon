@@ -93,13 +93,16 @@ class Radarr(object):
         logger.info('2')
         #we can't run the downloadmoviescan (ie. manual post-processing) since for some reason radarr will push the new download
         #to the original location regardless of any setting previously (it must be storing it in the download table or something)
+        name = self.snstat['name']
+        if 'extendedname' in self.snstat.keys():
+            name = self.snstat['extendedname']
         if self.applylabel is True:
             if self.snstat['label'] == 'None':
-                newpath = os.path.join(self.defaultdir, self.snstat['name'])
+                newpath = os.path.join(self.defaultdir, name)
             else:
-                newpath = os.path.join(self.defaultdir, self.snstat['label'], self.snstat['name'])
+                newpath = os.path.join(self.defaultdir, self.snstat['label'], name)
         else:
-            newpath = os.path.join(self.defaultdir, self.snstat['name'])
+            newpath = os.path.join(self.defaultdir, name)
 
         if os.path.isfile(newpath):
             logger.warn('[RADARR] This is an individual movie, but Radarr will only import from a directory. Creating a temporary directory and moving this so it can proceed.')
