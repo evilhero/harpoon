@@ -34,6 +34,8 @@ class Mylar(object):
 
     def post_process(self):
        logger.info('snstat: %s' % self.snstat)
+       issueid = None
+       comicid = None
        nzb_name = None
        nzb = False
        try:
