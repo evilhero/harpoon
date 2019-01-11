@@ -965,13 +965,22 @@ class QueueR(object):
                             os.remove(os.path.join(self.torrentfile_dir, snstat['label'], item['item'] + '.' + item['mode']))
                             logger.info('[MYLAR] File removed')
                         except:
+                            logger.warn('[MYLAR] Unable to remove file from snatch queue directory [' + item['item'] + '.' + item['mode'] + '].  Trying possible alternate naming.')
                             try:
-                                os.remove(os.path.join(self.torrentfile_dir, snstat['label'], snstat['hash'] + '.hash'))
+                                os.remove(os.path.join(self.torrentfile_dir, snstat['label'], snstat['hash'] + '.mylar.hash'))
                                 logger.info('[MYLAR] File removed by hash from system so no longer queuable')
                             except:
-                                logger.warn('[MYLAR] Unable to remove file from snatch queue directory [' + item['item'] + '.' + item['mode'] + ']. You should delete it manually to avoid re-downloading.')
+                                logger.warn('[MYLAR] Unable to remove file from snatch queue directory [' + item['item'] + '.mylar.' + item['mode'] + ']. You should delete it manually to avoid re-downloading.')
                     else:
                         logger.info('[MYLAR] Completed status returned for manual post-processing of file.')
+
+                    if mylar_process is True:
+                        logger.info('[MYLAR] Successfully post-processed : ' + snstat['name'])
+                        self.cleanup_check(item, script_cmd, downlocation)
+
+                    else:
+                        logger.info('[MYLAR] Unable to confirm successful post-processing - this could be due to running out of hdd-space, an error, or something else occuring to halt post-processing of the issue.')
+                        logger.info('[MYLAR] HASH: %s / label: %s' % (snstat['hash'], snstat['label']))
 
                     CKQUEUE.append({'hash':   snstat['hash'],
                                     'stage':  'completed'})
@@ -1356,12 +1365,13 @@ class QueueR(object):
                                     fpath = os.path.join(self.conf_info['torrentfile_dir'], f)
                                     npath = os.path.join(self.conf_info['torrentfile_dir'], hashfile)
 
-                                try:
-                                    os.rename(fpath,npath)
-                                    logger.info('Succesfully renamed file to ' + npath)
-                                except Exception as e:
-                                    logger.warn('[%s] Unable to rename file %s to %s' % (e, fpath, npath))
-                                    continue
+                                if mode != 'hash':
+                                    try:
+                                        os.rename(fpath,npath)
+                                        logger.info('Succesfully renamed file to ' + npath)
+                                    except Exception as e:
+                                        logger.warn('[%s] Unable to rename file %s to %s' % (e, fpath, npath))
+                                        continue
 
         def history_poll(self, torrentname):
             path = self.conf_info['torrentfile_dir']

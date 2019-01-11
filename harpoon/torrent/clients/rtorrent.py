@@ -106,8 +106,7 @@ class TorrentClient(object):
 
         return torrent_info if torrent_info else False
 
-    def load_torrent(self, filepath, rtorr_label, start):
-        rtorr_dir = 0
+    def load_torrent(self, filepath, rtorr_label, start, applylabel=None, rtorr_dir=None):
         print('filepath to torrent file set to : ' + filepath)
 
         torrent = self.conn.load_torrent(filepath, verify_load=True)
@@ -118,9 +117,10 @@ class TorrentClient(object):
             torrent.set_custom(1, rtorr_label)
             print('Setting label for torrent to : ' + rtorr_label)
 
-        if rtorr_dir:
-            torrent.set_directory(rtorr_dir)
-            print('Setting directory for torrent to : ' + rtorr_dir)
+        if all([applylabel is True, rtorr_label is not None]):
+            new_location = os.path.join(rtorr_dir, rtorr_label)
+            torrent.set_directory(new_location)
+            print('Setting directory for torrent to : %s' % new_location)
 
         print('Successfully loaded torrent.')
 
