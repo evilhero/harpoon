@@ -211,6 +211,8 @@ For organizational/operational usage it is best to create a folder for .torrent 
 **For Sonarr/Radarr/Lidarr**
 ----------
 
+**NOTE FOR SONARR > V2.0.0.5301** Remote Mapping MUST be enabled - your remote mapping folder is the location where sonarr puts your tv-related torrents on your seedobox, local is where harpoon drops them prior to post-processing
+
 In any of the above applications, go to Settings / Connections and create a custom script. Give the name something obvious 'HARPOON', and set the On Grab option to Yes, and the On Download option to No.  Set the Path option to the location of your python executable (ie. /usr/bin/python), and then in the arguments set it to the complete path to the harpoonshot.py file which is currently located in the root of the harpoon folder with the application name at the end of the argument line (ie. /opt/harpoon/harpoonshot.py radarr OR /opt/harpoon/harpoonshot.py sonarr).
 
 Save the script and make sure it's enabled. That's it - now whenever sonarr/radarr/lidarr snatch a torrent it will still send it directly to the given client, but it will also run the harpoonshot.py script right after which contains information that allows harpoon to monitor the file by hash on the torrent client. It will create a file in the given watch directory folder, under the specific label, as the hash of the file with the extension of either .radarr.hash, .sonarr.hash, or lidarr.hash once it's been successfully added to the watch queue (once post-processing has been successfully completed, these files in the watch directory are automatically removed).
